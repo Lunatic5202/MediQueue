@@ -108,8 +108,6 @@ def test_dataset_hash_changes_when_observation_unit_changes():
 
     assert dataset_hash([first]) != dataset_hash([second])
 
-
-
 def test_dataset_hash_changes_when_observation_timestamp_changes():
     from mediqueue.training.datasets import dataset_hash
 
@@ -118,3 +116,14 @@ def test_dataset_hash_changes_when_observation_timestamp_changes():
     second.observations[0]["device_ts"] = datetime(2026, 1, 1, 0, 1, tzinfo=UTC)
 
     assert dataset_hash([first]) != dataset_hash([second])
+
+def test_dataset_hash_rejects_nonfinite_observation_values():
+    import pytest
+
+    from mediqueue.training.datasets import dataset_hash
+
+    series = _series()
+    series.observations[0]["value"] = float("nan")
+
+    with pytest.raises(ValueError):
+        dataset_hash([series])
