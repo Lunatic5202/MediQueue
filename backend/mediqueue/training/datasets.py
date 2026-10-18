@@ -62,16 +62,13 @@ def generate_synthetic_corpus(
     hours: float = 3.0,
     step_minutes: float = 1.0,
     deteriorating_fraction: float = 0.35,
-    horizon_minutes: float | None = None,
 ) -> list[PatientSeries]:
     """Patient timelines with stable and deteriorating trajectories.
 
-    Deterioration onset is hidden from features; the proxy label marks sample
-    times from `horizon_minutes` before onset through series end (default
-    horizon: settings).
+    Deterioration onset is hidden from features. Labels mark the onset itself
+    and all later samples; build_feature_matrix applies the configured
+    prediction horizon when constructing deterioration targets.
     """
-    settings = get_settings()
-    horizon = horizon_minutes if horizon_minutes is not None else settings.deterioration_horizon_minutes
     rng = random.Random(seed)
     corpus: list[PatientSeries] = []
     n_steps = int((hours * 60.0) / step_minutes)
@@ -118,10 +115,9 @@ def generate_synthetic_corpus(
             label = 0
             if onset_step is not None:
                 onset_min = onset_step * step_minutes
-                # Positive from `horizon` minutes before onset through the end
-                # of the series: a deteriorated patient stays at risk, so the
-                # worst states must not be labeled negative.
-                if mins >= onset_min - horizon:
+                # Store the observed onset label here. The feature-matrix
+                # builder applies the prediction horizon exactly once.
+                if mins >= onset_min:
                     label = 1
             labels.append((ts, label))
 
