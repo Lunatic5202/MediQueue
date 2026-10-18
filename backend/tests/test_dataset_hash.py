@@ -179,3 +179,12 @@ def test_dataset_hash_changes_when_series_positive_flag_changes_without_label_ch
     assert positive.positive is True
     assert negative_flag.positive is False
     assert dataset_hash([positive]) != dataset_hash([negative_flag])
+
+
+def test_dataset_hash_is_stable_under_generation_parameter_key_order():
+    from mediqueue.training.datasets import dataset_hash
+
+    first_params = {"seed": 42, "options": {"window": 10, "stride": 5}}
+    reordered_params = {"options": {"stride": 5, "window": 10}, "seed": 42}
+
+    assert dataset_hash([_series()], first_params) == dataset_hash([_series()], reordered_params)
