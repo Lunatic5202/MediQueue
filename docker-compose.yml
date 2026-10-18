@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mediqueue
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: mediqueue
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediqueue"]
+      interval: 5s
+      retries: 10
+  api:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+    ports: ["8000:8000"]
+    environment:
+      MEDIQUEUE_ENV: ${MEDIQUEUE_ENV:-dev}
+      MEDIQUEUE_DATABASE_URL: postgresql+psycopg://mediqueue:${POSTGRES_PASSWORD}@db:5432/mediqueue
+      MEDIQUEUE_SECRET_KEY: ${MEDIQUEUE_SECRET_KEY:-dev-only-insecure-secret}
+      MEDIQUEUE_CORS_ORIGINS: ${MEDIQUEUE_CORS_ORIGINS:-*}
+      MEDIQUEUE_SEED_USERS: ${MEDIQUEUE_SEED_USERS:-true}
+volumes:
+  pgdata:

@@ -15,6 +15,16 @@ must confirm, reject, or override. Every action is fully audited.
 > not diagnoses, are not prospectively validated on the target population,
 > and must never be the sole basis for clinical decisions.
 
+![Live queue](docs/screenshots/queue.png)
+
+<details><summary>More screenshots</summary>
+
+![Patient detail](docs/screenshots/patient.png)
+![Alerts](docs/screenshots/alerts.png)
+![Model & health](docs/screenshots/model.png)
+
+</details>
+
 ## Quick start
 
 ```bash
@@ -31,6 +41,8 @@ cd frontend && npm install && npm run build && cd ..
 ./scripts/run_dev.sh            # API + dashboard on http://127.0.0.1:8000
 # API docs: http://127.0.0.1:8000/docs
 ```
+
+Or with Docker (API + PostgreSQL): copy `.env.example` to `.env`, then `docker compose up --build`.
 
 ### Demo accounts
 
@@ -69,9 +81,10 @@ See [`docs/architecture.md`](docs/architecture.md) for the full design.
 backend/mediqueue/       FastAPI app, pipeline, modules (validation, history,
                          features, inference, risk, recommendation, audit,
                          simulator), realtime hub, training package
-backend/tests/           43 pytest tests (unit + API integration)
-frontend/                React 19 + MUI dashboard (Vite build → frontend/dist,
-                         served by the API)
+backend/tests/           51 pytest tests (unit + API integration)
+frontend/                React 19 + MUI dashboard (Vitest tests; `npm run build` →
+                         frontend/dist, served by the API)
+backend/migrations/      Alembic schema migrations (`alembic upgrade head`)
 scripts/                 train_model.py, evaluate_model.py, benchmark.py,
                          run_dev.sh
 artifacts/               Versioned model artifacts + evaluation reports
@@ -119,11 +132,22 @@ docs/                    Architecture, IBM Z deployment, datasets, security
 - Patient-level 70/15/15 train/validation/test split (no patient leakage).
 - Class-weighted loss (no SMOTE — synthetic minority trajectories may be
   implausible).
-- Metrics: AUROC, AUPRC, precision/recall/F1 at the operating threshold.
+- Metrics: AUROC, AUPRC, precision/recall/F1 at the operating threshold, plus calibration (Brier, ECE) and a fixed-threshold operating-point table.
+- Probabilities are isotonic-calibrated on the validation split; the operating threshold is the highest one reaching 0.80 validation recall (`--target-recall`).
 - Every artifact is versioned with `dataset_hash` + `feature_schema_hash`;
   the serving path refuses artifacts whose feature schema does not match.
 - Sepsis labels and general-deterioration proxy labels are **never blended**
   into one model or one report.
+
+### Results (synthetic data only)
+
+| Metric | Value |
+| --- | --- |
+| AUROC / AUPRC | 0.822 / 0.706 |
+| Recall / precision at operating threshold 0.17 | 0.821 / 0.430 |
+| Brier / ECE (isotonic-calibrated) | 0.109 / 0.038 |
+
+These are system-demonstration numbers on a synthetic corpus, not clinical evidence. See the [model card](docs/model-card.md) for intended use and limitations, including the alert-threshold mismatch.
 
 ## Benchmark
 
@@ -144,6 +168,10 @@ All thresholds are environment-overridable (`MEDIQUEUE_*`); see
 | --- | --- | --- |
 | `MEDIQUEUE_DATABASE_URL` | `sqlite:///./mediqueue.db` | Any SQLAlchemy URL (PostgreSQL-ready) |
 | `MEDIQUEUE_SECRET_KEY` | dev-only literal | HMAC key for tokens — **must** be set in deployment |
+| `MEDIQUEUE_ENV`                         | `dev`                      | `production` enforces a strong secret, explicit CORS, no demo users |
+| `MEDIQUEUE_CORS_ORIGINS`                | `*`                        | Comma-separated allowed origins (explicit in production) |
+| `MEDIQUEUE_SEED_USERS`                  | on in dev, off in prod     | Create demo accounts; use `scripts/create_user.py` instead |
+| `MEDIQUEUE_LOGIN_MAX_ATTEMPTS`          | `5` per `300` s            | Failed-login throttle (HTTP 429)                    |
 | `MEDIQUEUE_ALERT_THRESHOLD` | `0.60` | Absolute-risk alert threshold |
 | `MEDIQUEUE_MATERIAL_WORSENING_DELTA` | `0.15` | Score jump that bypasses cooldown |
 | `MEDIQUEUE_MIN_BAND_FOR_RECOMMENDATION` | `elevated` | Minimum alert band that produces a recommendation |
