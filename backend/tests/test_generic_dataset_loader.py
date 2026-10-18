@@ -30,3 +30,28 @@ def test_generic_csv_accepts_binary_labels(tmp_path, label, expected):
     assert len(corpus) == 1
     assert corpus[0].labels[0][1] == expected
     assert corpus[0].positive is bool(expected)
+
+
+def test_generic_csv_can_require_labels_for_supervised_use(tmp_path):
+    path = tmp_path / "unlabeled.csv"
+    path.write_text(
+        "patient_id,vital_type,value,unit,device_ts\n"
+        "p1,heart_rate,80,bpm,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="requires a label column"):
+        load_generic_csv(path, require_labels=True)
+
+
+def test_generic_csv_rejects_missing_labels_when_required(tmp_path):
+    path = tmp_path / "partially-labeled.csv"
+    path.write_text(
+        "patient_id,vital_type,value,unit,device_ts,label\n"
+        "p1,heart_rate,80,bpm,2026-01-01T00:00:00Z,0\n"
+        "p1,spo2,98,%,2026-01-01T00:00:00Z,\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="non-missing label on every row"):
+        load_generic_csv(path, require_labels=True)

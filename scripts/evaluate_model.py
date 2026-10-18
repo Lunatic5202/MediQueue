@@ -21,8 +21,11 @@ from mediqueue.training.evaluate import evaluate_artifact, write_report  # noqa:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("artifact_dir", help="Path to artifacts/models/<version_id>")
-    parser.add_argument("--dataset", choices=["synthetic", "physionet"], default="synthetic")
-    parser.add_argument("--data-dir", default=None)
+    parser.add_argument("--dataset", choices=["synthetic", "physionet", "generic"], default="synthetic")
+    parser.add_argument(
+        "--data-dir", default=None,
+        help="PhysioNet directory or generic labeled long-format CSV file",
+    )
     parser.add_argument("--n-patients", type=int, default=300)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--split", choices=["train", "validation", "test", "all"], default="test")

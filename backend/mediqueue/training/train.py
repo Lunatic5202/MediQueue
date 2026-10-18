@@ -35,6 +35,7 @@ from .datasets import (
     build_feature_matrix,
     dataset_hash,
     generate_synthetic_corpus,
+    load_generic_training_csv,
     load_physionet2019,
 )
 
@@ -139,6 +140,10 @@ def train_model(
             raise ValueError("data_dir is required for the physionet dataset")
         corpus = load_physionet2019(data_dir)
         gen_params["data_dir"] = str(data_dir)
+    elif dataset == "generic":
+        if not data_dir:
+            raise ValueError("data_dir is required for the generic CSV dataset")
+        corpus = load_generic_training_csv(data_dir)
     else:
         raise ValueError(f"unknown dataset {dataset!r}")
 

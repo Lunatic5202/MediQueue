@@ -56,7 +56,24 @@ licenses.
   | value_diastolic | float, optional | diastolic for BP |
   | unit | str | `bpm` \| `%` \| `mmHg` \| `°C` |
   | device_ts | ISO-8601 | measurement time |
-  | label | 0/1, optional | per-timestamp label |
+  | label | 0/1, optional for loading; required on every row for training/evaluation | per-timestamp label |
+
+### Train/evaluate with a generic CSV
+
+The generic loader can inspect unlabeled data, but supervised training and
+evaluation require a binary label on every row. The training/evaluation path
+runs the quality audit automatically and stops if errors or warnings remain;
+resolve duplicate observation keys and label issues before proceeding.
+
+```bash
+python scripts/train_model.py --dataset generic --data-dir /path/to/training.csv
+python scripts/evaluate_model.py /path/to/artifacts/models/<version-id> \
+  --dataset generic --data-dir /path/to/held-out.csv --split all
+```
+
+Use a genuinely independent evaluation CSV when reporting generalization.
+Do not evaluate on the same patients used for training and interpret it as
+external validation. The dataset must contain labels for all rows.
 
 ### Offline generic-CSV quality audit
 
