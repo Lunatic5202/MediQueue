@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 
 def test_train_creates_versioned_artifact_with_hashes(tmp_path, monkeypatch):
     monkeypatch.setenv("MEDIQUEUE_DATABASE_URL", f"sqlite:///{tmp_path/'t.db'}")
@@ -33,8 +31,9 @@ def test_train_creates_versioned_artifact_with_hashes(tmp_path, monkeypatch):
     assert "auroc" in meta["metrics"]["test"]
     assert meta["metrics"]["test"]["n_samples"] > 0
 
-    from mediqueue.db import get_engine, init_db, model_versions
     from sqlalchemy.orm import Session
+
+    from mediqueue.db import get_engine, init_db, model_versions
 
     init_db()
     with Session(get_engine()) as session:
@@ -91,3 +90,23 @@ def test_patient_level_split_has_no_overlap():
     assert len(tr) + len(va) + len(te) == 100
     # ~70/15/15
     assert 0.6 <= len(tr) / 100 <= 0.8
+
+
+def test_pick_threshold_is_recall_first():
+    import numpy as np
+
+    from mediqueue.training.train import pick_threshold
+
+    y = np.array([1] * 10 + [0] * 90)
+    p = np.concatenate([np.linspace(0.5, 0.95, 10), np.linspace(0.0, 0.6, 90)])
+    t, policy = pick_threshold(y, p, target_recall=0.9)
+    assert ((p >= t)[y == 1].mean()) >= 0.9 and "recall" in policy
+    t_f1, policy_f1 = pick_threshold(y, p, target_recall=None)
+    assert "F1" in policy_f1
+
+
+def test_trained_artifact_is_calibrated(tmp_path):
+    from mediqueue.training.train import train_model
+
+    r = train_model(n_patients=60, out_dir=str(tmp_path), register=False)
+    assert (r.artifact_dir / "calibrator.joblib").exists()

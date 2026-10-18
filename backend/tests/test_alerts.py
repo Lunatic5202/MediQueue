@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-import pytest
 from sqlalchemy.orm import Session
 
-from mediqueue.db import alerts, get_engine, init_db, patients, utcnow
+from mediqueue.db import alerts, get_engine, init_db
 from mediqueue.modules.features import compute_features
 from mediqueue.modules.risk import (
     detect_adverse_trend,
@@ -16,7 +15,7 @@ from mediqueue.modules.risk import (
 )
 from mediqueue.pipeline import ensure_patient
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def _rows(readings, vital="spo2"):

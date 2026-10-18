@@ -4,11 +4,11 @@ fail-safe behavior."""
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from conftest import feed_vitals, mild_series, worsening_series
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def test_login_and_auth_required(client):

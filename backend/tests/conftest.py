@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 BACKEND = Path(__file__).resolve().parents[1]
@@ -30,6 +28,9 @@ def app_env(tmp_path, monkeypatch):
     from mediqueue.config import reset_settings
 
     reset_settings()
+    from mediqueue.security import reset_login_throttle
+
+    reset_login_throttle()
 
     # Build a tiny deterministic logreg artifact trained on REAL feature rows
     # (from the synthetic corpus + the shared feature-engineering code), so
@@ -96,8 +97,9 @@ def app_env(tmp_path, monkeypatch):
     ensure_seed_users()
     get_inference_engine().load(version)
 
-    from mediqueue.app import create_app
     from fastapi.testclient import TestClient
+
+    from mediqueue.app import create_app
 
     application = create_app()
     with TestClient(application) as client:
@@ -178,7 +180,7 @@ def feed_vitals(
 
 def worsening_series(n: int = 6, end_minutes_ago: float = 0.0, step: float = 5.0):
     """SpO2 falling and HR rising over the series (adverse trajectories)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now - timedelta(minutes=end_minutes_ago + step * (n - 1))
     rows = []
     for i in range(n):
@@ -189,7 +191,7 @@ def worsening_series(n: int = 6, end_minutes_ago: float = 0.0, step: float = 5.0
 
 def mild_series(n: int = 5, end_minutes_ago: float = 0.0, step: float = 5.0):
     """Gentle adverse drift: enough to trigger alerts with upgrade headroom."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = now - timedelta(minutes=end_minutes_ago + step * (n - 1))
     rows = []
     for i in range(n):

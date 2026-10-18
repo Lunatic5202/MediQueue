@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ from mediqueue.modules import history
 from mediqueue.modules.features import compute_features, feature_names, to_model_vector
 from mediqueue.modules.validation import validate_and_normalize
 
-NOW = datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 
 
 def _obs(pid, vital, value, ts, **extra):
@@ -58,7 +58,6 @@ def test_late_observation_inserted_in_device_time_order(app_env):
 
 
 def test_prune_history_bounds_rows(app_env, monkeypatch):
-    from mediqueue.config import get_settings
 
     monkeypatch.setenv("MEDIQUEUE_MAX_HISTORY_PER_PATIENT", "5")
     monkeypatch.setenv("MEDIQUEUE_HISTORY_WINDOW_HOURS", "4")
@@ -155,3 +154,19 @@ def test_missing_values_stay_null_and_vector_is_nan():
     for name in names:
         if name.endswith("__latest"):
             assert math.isnan(vec[names.index(name)]), name
+
+
+def test_minutes_since_last_is_small_age_not_epoch_offset():
+    from datetime import datetime, timedelta
+
+    from mediqueue.modules.features import compute_features
+
+    now = datetime.now(UTC)
+    rows = [
+        {"vital_type": "heart_rate", "value": 80.0, "value_diastolic": None,
+         "device_ts": now - timedelta(minutes=m)}
+        for m in (12, 6, 3)
+    ]
+    feats = compute_features(rows, as_of=now).features
+    assert abs(feats["heart_rate__minutes_since_last"] - 3.0) < 0.01
+    assert abs(feats["global__minutes_since_last_any"] - 3.0) < 0.01
