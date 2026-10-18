@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-
 def _series(patient_id="p1", value=80.0, label_offset=10):
     from mediqueue.training.datasets import PatientSeries
 
@@ -32,18 +31,15 @@ def _series(patient_id="p1", value=80.0, label_offset=10):
         positive=True,
     )
 
-
 def test_dataset_hash_changes_when_observation_value_changes():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series(value=80.0)]) != dataset_hash([_series(value=81.0)])
 
-
 def test_dataset_hash_changes_when_label_timestamp_changes():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series(label_offset=10)]) != dataset_hash([_series(label_offset=15)])
-
 
 def test_dataset_hash_is_stable_under_row_and_corpus_reordering():
     from mediqueue.training.datasets import dataset_hash
@@ -55,12 +51,10 @@ def test_dataset_hash_is_stable_under_row_and_corpus_reordering():
 
     assert dataset_hash([first, second]) == dataset_hash([second, reordered])
 
-
 def test_dataset_hash_includes_generation_parameters():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series()], {"seed": 1}) != dataset_hash([_series()], {"seed": 2})
-
 
 def test_dataset_hash_changes_when_label_class_changes():
     from mediqueue.training.datasets import dataset_hash
@@ -72,13 +66,10 @@ def test_dataset_hash_changes_when_label_class_changes():
 
     assert dataset_hash([positive]) != dataset_hash([negative])
 
-
 def test_dataset_hash_changes_when_patient_identity_changes():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series(patient_id="p1")]) != dataset_hash([_series(patient_id="p2")])
-
-
 
 def test_dataset_hash_changes_when_diastolic_pressure_changes():
     from mediqueue.training.datasets import dataset_hash
@@ -108,12 +99,22 @@ def test_dataset_hash_changes_when_diastolic_pressure_changes():
 
     assert dataset_hash([first]) != dataset_hash([second])
 
-
 def test_dataset_hash_changes_when_observation_unit_changes():
     from mediqueue.training.datasets import dataset_hash
 
     first = _series()
     second = _series()
     second.observations[0]["unit"] = "beats/minute"
+
+    assert dataset_hash([first]) != dataset_hash([second])
+
+
+
+def test_dataset_hash_changes_when_observation_timestamp_changes():
+    from mediqueue.training.datasets import dataset_hash
+
+    first = _series()
+    second = _series()
+    second.observations[0]["device_ts"] = datetime(2026, 1, 1, 0, 1, tzinfo=UTC)
 
     assert dataset_hash([first]) != dataset_hash([second])
