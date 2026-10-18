@@ -5,6 +5,7 @@ import {
   Card,
   Chip,
   Divider,
+  Grid,
   List,
   ListItem,
   ListItemText,
@@ -41,119 +42,149 @@ export default function ModelPage() {
     };
   }, []);
 
+  const serviceHealthy = health?.status === "ok";
+  const databaseHealthy = String(health?.database ?? "").toLowerCase() === "ok";
+  const modelLoaded = Boolean(health?.model_loaded);
+
   return (
     <Stack spacing={2.5}>
-      <Typography variant="h5">Model & system health</Typography>
-      {error && <Alert severity="error">{error}</Alert>}
-      <Card sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Service health
+      <Box>
+        <Typography variant="h5" sx={{ fontWeight: 750 }}>Model & system health</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Service readiness, model availability and the safeguards behind MediQueue's risk signals.
         </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        {health ? (
-          <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
+      </Box>
+
+      {error && <Alert severity="error">{error}</Alert>}
+
+      <Card sx={{ p: { xs: 2, sm: 3 } }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "center" }}
+          justifyContent="space-between"
+          spacing={1.5}
+          sx={{ mb: 2 }}
+        >
+          <Box>
+            <Typography variant="h6">Service health</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Latest response from the health endpoint
+            </Typography>
+          </Box>
+          {health && (
             <Chip
-              label={health.status === "ok" ? "healthy" : health.status}
-              color={health.status === "ok" ? "success" : "error"}
+              label={serviceHealthy ? "Service healthy" : `Service: ${health.status ?? "unknown"}`}
+              color={serviceHealthy ? "success" : "error"}
+              variant={serviceHealthy ? "filled" : "outlined"}
             />
-            <Chip variant="outlined" label={`version ${health.version}`} />
-            <Chip variant="outlined" label={`db: ${health.database}`} />
-            <Chip variant="outlined" label={health.model_loaded ? "model loaded" : "NO MODEL"} color={health.model_loaded ? "success" : "error"} />
-            <Chip variant="outlined" label={health.time ? new Date(health.time).toLocaleString() : ""} />
-          </Stack>
+          )}
+        </Stack>
+        <Divider sx={{ mb: 2 }} />
+        {health ? (
+          <Grid container spacing={1.5}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <HealthMetric label="API version" value={health.version ?? "—"} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <HealthMetric label="Database" value={health.database ?? "Unknown"} good={databaseHealthy} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <HealthMetric label="Model availability" value={modelLoaded ? "Loaded" : "Not loaded"} good={modelLoaded} />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <HealthMetric
+                label="Last checked"
+                value={health.time ? new Date(health.time).toLocaleString() : "Not reported"}
+              />
+            </Grid>
+          </Grid>
         ) : (
-          <LinearIndeterminate />
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {error ? "Health information could not be loaded." : "Checking service health…"}
+            </Typography>
+          </Box>
         )}
       </Card>
 
       <Alert severity="warning">
         <strong>Clinical disclaimer.</strong> MediQueue is a decision-support prototype. Risk scores,
-        recommendations, and queue priorities are operational signals for clinician review — they are not
-        diagnoses, are not prospectively validated, and must never be used as the sole basis for clinical
-        decisions. Clinicians can reject or override every recommendation; every action is audited.
+        recommendations and queue priorities are operational signals for clinician review—not diagnoses.
+        They are not prospectively validated and must never be used as the sole basis for clinical decisions.
+        Clinicians can reject or override recommendations, and actions are audited.
       </Alert>
 
-      <Card sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          How scoring works
+      <Card sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h6">How scoring works</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          The current pipeline uses recent observations and explicit safeguards before surfacing a score.
         </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-        <List dense>
-          <ListItem>
-            <ListItemText
-              primary="1 · Rolling 4-hour window"
-              secondary="Every accepted observation updates the patient's trailing 4h history of the 4 monitored vitals: heart rate, SpO₂, blood pressure, temperature."
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="2 · Low-history rule"
-              secondary="Fewer than 3 readings spanning under 10 minutes → the model abstains. Score is withheld (null), never displayed as 'safe'."
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="3 · Feature computation & inference"
-              secondary="Per-vital latest/mean/std/slope/delta features computed with the same code used offline for training. A versioned LightGBM model returns a calibrated deterioration score in [0,1]."
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="4 · Fail-safe"
-              secondary="If inference fails, no new score is written; the prior score is retained but flagged stale. Audit-write failure rolls back the entire action."
-            />
-          </ListItem>
-          <ListItem>
-            <ListItemText
-              primary="5 · Alerts & recommendations"
-              secondary="Absolute threshold + adverse-trend rules produce deduplicated alerts with structured (non-LLM) explanations. Recommendations require clinician confirmation; overrides require rationale."
-            />
-          </ListItem>
+        <Divider sx={{ my: 2 }} />
+        <List disablePadding>
+          <Step
+            number="01"
+            title="Rolling four-hour window"
+            description="Accepted observations update the patient's trailing history for heart rate, SpO₂, blood pressure and temperature."
+          />
+          <Step
+            number="02"
+            title="Insufficient-history safeguard"
+            description="Fewer than three readings spanning at least ten minutes causes the model to abstain. A missing score is not treated as a safe score."
+          />
+          <Step
+            number="03"
+            title="Features and inference"
+            description="Per-vital latest, mean, standard deviation, slope and delta features feed the versioned LightGBM model, which returns a deterioration score between 0 and 1."
+          />
+          <Step
+            number="04"
+            title="Fail-safe behavior"
+            description="If inference fails, the previous score is retained and marked stale. Audit-write failure rolls back the action."
+          />
+          <Step
+            number="05"
+            title="Alerts and clinician decisions"
+            description="Threshold and adverse-trend rules generate structured explanations. Recommendations require clinician review; overrides require a rationale."
+            last
+          />
         </List>
       </Card>
 
-      <Card sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Risk bands
+      <Card sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography variant="h6">Risk bands</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Application-defined categories; they should not be interpreted as validated clinical thresholds.
         </Typography>
-        <Divider sx={{ mb: 1.5 }} />
+        <Divider sx={{ my: 2 }} />
         <TableContainer>
-          <Table size="small">
+          <Table size="small" sx={{ minWidth: 520 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Band</TableCell>
                 <TableCell>Meaning</TableCell>
-                <TableCell>Queue effect</TableCell>
+                <TableCell>Queue behavior</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               <TableRow>
-                <TableCell>
-                  <Chip size="small" sx={{ bgcolor: "#0596691a", color: "#059669" }} label="Low" />
-                </TableCell>
+                <TableCell><Band label="Low" color="#047857" /></TableCell>
                 <TableCell>Below watch threshold</TableCell>
-                <TableCell>None automatic</TableCell>
+                <TableCell>No automatic change</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>
-                  <Chip size="small" sx={{ bgcolor: "#0891b21a", color: "#0891b2" }} label="Watch" />
-                </TableCell>
+                <TableCell><Band label="Watch" color="#0e7490" /></TableCell>
                 <TableCell>Early signal</TableCell>
-                <TableCell>Trend alert visible; recommendation if configured</TableCell>
+                <TableCell>Trend alert; recommendation if configured</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>
-                  <Chip size="small" sx={{ bgcolor: "#d977061a", color: "#d97706" }} label="Elevated" />
-                </TableCell>
-                <TableCell>Elevated deterioration risk</TableCell>
-                <TableCell>Pending recommendation (ESI −1 step)</TableCell>
+                <TableCell><Band label="Elevated" color="#b45309" /></TableCell>
+                <TableCell>Elevated deterioration signal</TableCell>
+                <TableCell>Pending one-step recommendation</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>
-                  <Chip size="small" sx={{ bgcolor: "#dc26261a", color: "#dc2626" }} label="High" />
-                </TableCell>
-                <TableCell>High deterioration risk</TableCell>
-                <TableCell>Priority alert + pending recommendation</TableCell>
+                <TableCell><Band label="High" color="#b91c1c" /></TableCell>
+                <TableCell>High deterioration signal</TableCell>
+                <TableCell>Priority alert and pending recommendation</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -163,8 +194,40 @@ export default function ModelPage() {
   );
 }
 
-function LinearIndeterminate() {
+function HealthMetric({ label, value, good }) {
   return (
-    <Box sx={{ color: "text.secondary", fontSize: 13 }}>Loading…</Box>
+    <Box sx={{ p: 1.5, height: "100%", border: 1, borderColor: "divider", borderRadius: 2, minWidth: 0 }}>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mt: 0.5 }}>
+        {good !== undefined && (
+          <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: good ? "success.main" : "error.main", flexShrink: 0 }} />
+        )}
+        <Typography variant="subtitle2" sx={{ overflowWrap: "anywhere" }}>{value}</Typography>
+      </Stack>
+    </Box>
   );
+}
+
+function Step({ number, title, description, last = false }) {
+  return (
+    <ListItem
+      alignItems="flex-start"
+      sx={{ px: 0, py: 1.5, borderBottom: last ? 0 : 1, borderColor: "divider", gap: 1.5 }}
+    >
+      <Box sx={{
+        minWidth: 38, height: 38, borderRadius: 2, display: "grid", placeItems: "center",
+        bgcolor: "primary.main", color: "primary.contrastText", fontWeight: 750, fontSize: 12,
+      }}>
+        {number}
+      </Box>
+      <ListItemText
+        primary={<Typography variant="subtitle2">{title}</Typography>}
+        secondary={<Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>{description}</Typography>}
+      />
+    </ListItem>
+  );
+}
+
+function Band({ label, color }) {
+  return <Chip size="small" sx={{ bgcolor: `${color}1a`, color, fontWeight: 700 }} label={label} />;
 }
