@@ -30,6 +30,10 @@ def test_train_creates_versioned_artifact_with_hashes(tmp_path, monkeypatch):
     meta = json.loads((result.artifact_dir / "metadata.json").read_text())
     assert meta["dataset_hash"] == result.dataset_hash
     assert meta["feature_schema_hash"] == result.feature_schema_hash
+    assert meta["training_seed"] == 3
+    patient_counts = meta["split_patient_counts"]
+    assert set(patient_counts) == {"train", "validation", "test"}
+    assert sum(patient_counts.values()) == 40
     assert (result.artifact_dir / "model.joblib").exists()
     assert "auroc" in meta["metrics"]["test"]
     assert meta["metrics"]["test"]["n_samples"] > 0
