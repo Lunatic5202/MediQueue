@@ -58,6 +58,26 @@ licenses.
   | device_ts | ISO-8601 | measurement time |
   | label | 0/1, optional | per-timestamp label |
 
+### Offline generic-CSV quality audit
+
+Before training on a generic long-format CSV, run the aggregate audit:
+
+```bash
+python scripts/audit_dataset.py /path/to/training.csv
+# Optionally save the JSON report:
+python scripts/audit_dataset.py /path/to/training.csv --output audit-report.json
+```
+
+The audit checks required columns, missing core fields, numeric and finite
+measurement values, timestamps, supported vital types, expected units, binary
+labels, and duplicate patient/vital/timestamp keys. It reports aggregate counts
+and does not include patient identifiers or raw observation values. Invalid
+rows produce a non-zero exit status; duplicate keys and unlabeled rows are
+reported as warnings for review. The report is a data-hygiene aid, not a
+clinical plausibility guarantee, dataset approval, or model validation. Review
+the report and resolve issues before running training; the audit does not
+modify the input CSV.
+
 ### 4. VitalDB open dataset (recorded perioperative measurements)
 
 - Website and access terms: https://physionet.org/content/vitaldb/1.0.0/ and
