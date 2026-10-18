@@ -2,7 +2,7 @@
 
 Datasets used offline:
 - PhysioNet/CinC Challenge 2019: sepsis task with the supplied SepsisLabel.
-  Data must be downloaded by the operator under its license (see docs).
+  Native pipe-delimited .psv files are supported; see docs for access terms.
 - Synthetic corpus: patient timelines with known deterioration onsets, used
   to exercise training/serving parity and the general-deterioration proxy
   label. Synthetic results are system evidence, not clinical evidence.
@@ -141,16 +141,21 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
     operator to download the dataset under its license.
     """
     root = Path(data_dir)
-    files = sorted(root.rglob("*.csv"))
+    # PhysioNet/CinC 2019 distributes per-patient pipe-delimited .psv files.
+    # Accept .psv as the native format and .csv for already-converted copies.
+    files = sorted(
+        path for path in root.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".psv", ".csv"}
+    )
     if not files:
-        raise FileNotFoundError(f"no per-patient CSV files under {root}")
+        raise FileNotFoundError(f"no per-patient .psv or .csv files under {root}")
     if max_patients is not None:
         files = files[:max_patients]
 
     corpus: list[PatientSeries] = []
     for f in files:
         try:
-            df = pd.read_csv(f)
+            df = pd.read_csv(f, sep="|" if f.suffix.lower() == ".psv" else ",")
         except Exception:  # noqa: BLE001 - skip unreadable files
             continue
         cols = {c.lower(): c for c in df.columns}

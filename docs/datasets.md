@@ -28,18 +28,21 @@ licenses.
 ### 2. PhysioNet/CinC Challenge 2019 (sepsis task)
 
 - Website: https://physionet.org/content/challenge-2019/1.0.0/
-- License: PhysioNet Credentialed Health Data License 1.5.0 — credentialing
-  and a signed DUA are required. Download yourself; do not commit the files.
-- Expected layout: one CSV per patient (e.g. `training_setA/*.csv`) with
-  columns `Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel` (column names
-  matched case-insensitively).
+- Access: the official PhysioNet page lists this version as open access
+  under the Creative Commons Attribution 4.0 International Public License.
+  Review the dataset page and license terms before use. Download the data
+  yourself; do not commit the files.
+- Native layout: one pipe-delimited `.psv` file per patient (e.g.
+  `training_setA/p00101.psv`) with columns such as
+  `Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel` (matched case-insensitively).
+  The loader also accepts comma-delimited `.csv` files for converted copies.
 - **Label: the supplied `SepsisLabel`.** This sepsis label is a *different
   clinical target* from the general-deterioration proxy — never blend the
   two labels, never mix their metrics in one report.
 
 ```bash
 .venv/bin/python scripts/train_model.py --task sepsis --dataset physionet \
-  --data-dir /secure/downloads/physionet2019/training_setA
+  --data-dir /secure/downloads/physionet2019
 ```
 
 ### 3. MIMIC-IV Demo / generic CSV
