@@ -153,3 +153,16 @@ def test_dataset_hash_changes_when_observation_provenance_changes():
         second.observations[0][field] = replacement
 
         assert dataset_hash([first]) != dataset_hash([second]), field
+
+
+def test_dataset_hash_changes_when_label_class_changes_without_positive_flag_change():
+    from mediqueue.training.datasets import dataset_hash
+
+    positive_label = _series()
+    zero_label = _series()
+    zero_label.labels = [(timestamp, 0) for timestamp, _ in zero_label.labels]
+
+    # Keep the series-level flag identical so the label itself is what changes.
+    assert positive_label.positive is True
+    assert zero_label.positive is True
+    assert dataset_hash([positive_label]) != dataset_hash([zero_label])
