@@ -57,6 +57,27 @@ licenses.
   | device_ts | ISO-8601 | measurement time |
   | label | 0/1, optional | per-timestamp label |
 
+### 4. VitalDB open dataset (recorded perioperative measurements)
+
+- Website and access terms: https://physionet.org/content/vitaldb/1.0.0/ and
+  https://vitaldb.net/docs/?documentId=OpenDataset%2FOverview.md
+- VitalDB contains de-identified operating-room/anesthesia recordings, not
+  emergency-department waiting-room observations. Treat it as a source for
+  ingestion and time-series experiments, not proof that MediQueue works for ED triage.
+- Track names and units vary by device. Map source tracks explicitly; do not
+  infer a unit or treat arterial waveforms as cuff blood-pressure readings.
+- The public data API exposes case metadata, track metadata, and per-track
+  time/value data. Numeric tracks may have irregular sample times. Preserve
+  source-relative timing and document any chosen time anchor.
+- Review and comply with the dataset's Data Use Agreement before downloading
+  or using it. Never commit downloaded records to this repository.
+
+The offline `scripts/export_observations.py` utility accepts a **normalized
+long-format CSV** and emits NDJSON payloads. It does not download or parse
+VitalDB's native tracks, call the MediQueue API, or write to the database.
+A source-specific adapter should only map explicitly selected numeric tracks
+to the four supported vital types and should leave clinical scoring untouched.
+
 ## Feature-engineering parity
 
 `build_feature_matrix()` computes training samples with the **same

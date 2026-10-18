@@ -48,7 +48,11 @@ def patient_key(raw: str, prefix: str) -> str:
 
 
 def convert_row(row: dict[str, Any], row_number: int, prefix: str, source_id: str) -> dict[str, Any]:
-    missing = [name for name in REQUIRED_COLUMNS if not str(row.get(name, "")).strip()]
+    missing = [
+        name
+        for name in REQUIRED_COLUMNS
+        if row.get(name) is None or not str(row.get(name, "")).strip()
+    ]
     if missing:
         raise ValueError(f"row {row_number}: missing value(s) for {', '.join(sorted(missing))}")
 
