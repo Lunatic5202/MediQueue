@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import importlib.util
 from datetime import UTC, datetime
-from pathlib import Path
 from io import StringIO
+from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "validate_observations.py"
 SPEC = importlib.util.spec_from_file_location("validate_observations", SCRIPT)
@@ -16,16 +16,26 @@ SPEC.loader.exec_module(validator)
 NOW = datetime(2026, 10, 18, tzinfo=UTC)
 
 
-def test_accepts_valid_observation_and_reports_summary(tmp_path):
+def test_accepts_valid_observation_and_reports_quality_summary(tmp_path):
     source = tmp_path / "observations.ndjson"
     source.write_text(
         '{"patient_id":"offline-demo","vital_type":"heart_rate","value":80,'
-        '"unit":"bpm","device_timestamp":"2024-01-01T00:00:00Z"}\n',
+        '"unit":"bpm","device_timestamp":"2024-01-01T00:00:00Z"}\n'
+        '{"patient_id":"offline-demo","vital_type":"heart_rate","value":95,'
+        '"unit":"bpm","device_timestamp":"2024-01-01T00:01:00Z"}\n'
+        '{"patient_id":"offline-demo","vital_type":"blood_pressure","value":120,'
+        '"value_diastolic":80,"unit":"mmHg","device_timestamp":"2024-01-01T00:02:00Z"}\n',
         encoding="utf-8",
     )
     output = StringIO()
-    assert validator.validate_file(source, output, now=NOW) == (1, 0)
-    assert "1 valid, 0 invalid" in output.getvalue()
+    assert validator.validate_file(source, output, now=NOW) == (3, 0)
+    report = output.getvalue()
+    assert "3 valid, 0 invalid" in report
+    assert "heart_rate: 2 valid" in report
+    assert "value range 80.00–95.00 bpm" in report
+    assert "blood_pressure: 1 valid" in report
+    assert "diastolic range 80.00–80.00 mmHg" in report
+    assert "timestamps 2024-01-01T00:00:00Z to 2024-01-01T00:01:00Z" in report
 
 
 def test_reports_invalid_range_and_malformed_json_without_patient_ids(tmp_path):
