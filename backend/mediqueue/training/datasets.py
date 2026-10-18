@@ -2,7 +2,7 @@
 
 Datasets used offline:
 - PhysioNet/CinC Challenge 2019: sepsis task with the supplied SepsisLabel.
-  Data must be downloaded by the operator under its license (see docs).
+  Native pipe-delimited .psv files are supported; see docs for access terms.
 - Synthetic corpus: patient timelines with known deterioration onsets, used
   to exercise training/serving parity and the general-deterioration proxy
   label. Synthetic results are system evidence, not clinical evidence.
