@@ -8,6 +8,32 @@ import pandas as pd
 import pytest
 
 
+def test_train_from_generic_csv_uses_loaded_corpus(tmp_path, monkeypatch):
+    monkeypatch.setenv("MEDIQUEUE_DATABASE_URL", f"sqlite:///{tmp_path/'generic.db'}")
+    monkeypatch.setenv("MEDIQUEUE_ARTIFACTS_DIR", str(tmp_path / "models"))
+    from mediqueue.config import reset_settings
+    from mediqueue.training import train
+    from mediqueue.training.datasets import generate_synthetic_corpus
+
+    reset_settings()
+    corpus = generate_synthetic_corpus(n_patients=40, seed=3)
+    monkeypatch.setattr(train, "load_generic_training_csv", lambda path: corpus)
+
+    result = train.train_model(
+        dataset="generic",
+        data_dir="synthetic-fixture.csv",
+        n_patients=40,
+        seed=3,
+        kind="logreg",
+        out_dir=str(tmp_path / "models"),
+        register=False,
+    )
+    meta = json.loads((result.artifact_dir / "metadata.json").read_text())
+    assert meta["dataset"] == "generic"
+    assert meta["dataset_hash"] == result.dataset_hash
+    reset_settings()
+
+
 def test_train_creates_versioned_artifact_with_hashes(tmp_path, monkeypatch):
     monkeypatch.setenv("MEDIQUEUE_DATABASE_URL", f"sqlite:///{tmp_path/'t.db'}")
     monkeypatch.setenv("MEDIQUEUE_ARTIFACTS_DIR", str(tmp_path / "models"))
