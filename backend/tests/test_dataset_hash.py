@@ -130,8 +130,6 @@ def test_dataset_hash_rejects_nonfinite_observation_values():
 
 
 def test_dataset_hash_changes_when_observation_provenance_changes():
-    import pytest
-
     from mediqueue.training.datasets import dataset_hash
 
     cases = [
