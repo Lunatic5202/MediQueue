@@ -268,6 +268,12 @@ def train_model(
         "task": task,
         "dataset": dataset,
         "dataset_hash": d_hash,
+        "training_seed": seed,
+        "split_patient_counts": {
+            "train": int(train_df["patient_id"].nunique()),
+            "validation": int(val_df["patient_id"].nunique()),
+            "test": int(test_df["patient_id"].nunique()),
+        },
         "feature_schema_hash": f_hash,
         "feature_order": feature_cols,
         "threshold": best_t,
