@@ -33,6 +33,18 @@ On the held-out split from the training corpus the same model scores AUROC 0.802
 - Isotonic calibration is fitted on a small validation set; the 0.8–1.0 range is sparse and unreliable.
 - No subgroup analysis (age, sex), no prospective or external validation, no drift monitoring.
 
+## Training artifact provenance
+
+Each offline training run writes a versioned `metadata.json` alongside its model and calibration artifacts. The metadata records:
+
+- **Training seed:** the seed passed to the training command, for reproducibility of seeded corpus generation and model training.
+- **Dataset fingerprint:** a SHA-256 hash of the dataset and generation parameters. A matching hash is useful for identifying matching inputs; it is not proof of data quality or validity.
+- **Feature-schema fingerprint and order:** identifies the feature schema used to build the model inputs.
+- **Split patient counts:** the number of unique patients assigned to the train, validation, and held-out test splits. These counts help audit split scope and patient-level separation; they do not establish representativeness or clinical validity.
+- **Threshold and calibration policy:** documents the validation-derived operating threshold and isotonic calibration approach.
+
+Keep the generated metadata with the matching model artifact when sharing offline experiment results. Do not commit real patient records or sensitive data to the repository.
+
 ## Offline evaluation report provenance
 
 The offline evaluation command writes JSON and Markdown reports. These reports include the model version, task, dataset, selected split, threshold, metrics, operating points, calibration summary, and an evidence disclaimer.
