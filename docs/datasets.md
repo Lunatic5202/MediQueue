@@ -92,7 +92,7 @@ Before using an export in any downstream workflow, run the offline validator:
 python scripts/validate_observations.py vitaldb-case-1.ndjson
 ```
 
-It applies MediQueue's existing unit, timestamp, and plausibility checks without making API calls or writing to the database. It reports line numbers and validation errors but deliberately does not print patient IDs. A non-zero exit status means the file contains invalid rows or no valid observations. This checks payload compatibility only; it does not validate the clinical usefulness of the dataset or the triage model.
+It applies MediQueue's existing unit, timestamp, and plausibility checks without making API calls or writing to the database. It reports line numbers and validation errors, plus per-vital counts, value ranges, and timestamp coverage for valid rows; it deliberately does not print patient IDs. A non-zero exit status means the file contains invalid rows or no valid observations. This checks payload compatibility only; it does not validate the clinical usefulness of the dataset or the triage model.
 
 ## Feature-engineering parity
 
