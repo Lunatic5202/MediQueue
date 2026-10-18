@@ -158,7 +158,10 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
         except Exception:  # noqa: BLE001 - skip unreadable files
             continue
         cols = {c.lower(): c for c in df.columns}
-        if "hour" not in cols or "sepsislabel" not in cols:
+        # Official Challenge files use ICULOS (ICU length of stay) as the
+        # hourly index; some normalized CSV exports use Hour instead.
+        time_col = cols.get("hour") or cols.get("iculos")
+        if time_col is None or "sepsislabel" not in cols:
             continue
         pid = f.stem
 
@@ -178,7 +181,7 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
         labels: list[tuple[datetime, int]] = []
         t0 = datetime(2026, 1, 1, tzinfo=UTC)
         for _, row in df.iterrows():
-            hour = float(row[cols["hour"]])
+            hour = float(row[time_col])
             ts = t0 + timedelta(hours=hour)
             label = int(float(row[cols["sepsislabel"]]) or 0)
             labels.append((ts, label))
