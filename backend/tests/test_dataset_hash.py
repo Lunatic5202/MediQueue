@@ -166,3 +166,16 @@ def test_dataset_hash_changes_when_label_class_changes_without_positive_flag_cha
     assert positive_label.positive is True
     assert zero_label.positive is True
     assert dataset_hash([positive_label]) != dataset_hash([zero_label])
+
+
+def test_dataset_hash_changes_when_series_positive_flag_changes_without_label_change():
+    from mediqueue.training.datasets import dataset_hash
+
+    positive = _series()
+    negative_flag = _series()
+    negative_flag.positive = False
+
+    assert positive.labels == negative_flag.labels
+    assert positive.positive is True
+    assert negative_flag.positive is False
+    assert dataset_hash([positive]) != dataset_hash([negative_flag])
