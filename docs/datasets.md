@@ -28,11 +28,13 @@ licenses.
 ### 2. PhysioNet/CinC Challenge 2019 (sepsis task)
 
 - Website: https://physionet.org/content/challenge-2019/1.0.0/
-- License: PhysioNet Credentialed Health Data License 1.5.0 — credentialing
-  and a signed DUA are required. Download yourself; do not commit the files.
-- Expected layout: one CSV per patient (e.g. `training_setA/*.csv`) with
-  columns `Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel` (column names
-  matched case-insensitively).
+- Access: the PhysioNet Challenge 2019 dataset is listed as open access under
+  CC BY 4.0. Follow the dataset page terms and attribution requirements; do
+  not commit downloaded dataset files to this repository.
+- Official layout: one pipe-separated `.psv` file per patient (e.g.
+  `training_setA/*.psv`) with columns including `Hour, HR, O2Sat, Temp,
+  SBP, DBP, SepsisLabel` (column names matched case-insensitively). The
+  loader also accepts comma-separated `.csv` exports.
 - **Label: the supplied `SepsisLabel`.** This sepsis label is a *different
   clinical target* from the general-deterioration proxy — never blend the
   two labels, never mix their metrics in one report.

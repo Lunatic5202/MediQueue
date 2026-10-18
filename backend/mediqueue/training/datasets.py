@@ -134,27 +134,34 @@ def generate_synthetic_corpus(
 
 
 def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) -> list[PatientSeries]:
-    """Load PhysioNet/CinC 2019 training files (one CSV per patient).
+    """Load PhysioNet/CinC 2019 files (one pipe-separated .psv per patient).
 
-    Expected columns include: Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel.
-    Files may live in nested folders (e.g., training_setA). Requires the
-    operator to download the dataset under its license.
+    Also accepts comma-separated .csv exports. Expected columns include:
+    Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel. Files may live in nested
+    folders (e.g., training_setA). Requires the operator to download the
+    dataset under its license.
     """
     root = Path(data_dir)
-    files = sorted(root.rglob("*.csv"))
+    # PhysioNet Challenge 2019 distributes per-patient pipe-separated .psv
+    # files. Keep .csv support for normalized/local exports, but parse each
+    # format with its actual delimiter.
+    files = sorted([*root.rglob("*.psv"), *root.rglob("*.csv")])
     if not files:
-        raise FileNotFoundError(f"no per-patient CSV files under {root}")
+        raise FileNotFoundError(f"no per-patient .psv or .csv files under {root}")
     if max_patients is not None:
         files = files[:max_patients]
 
     corpus: list[PatientSeries] = []
     for f in files:
         try:
-            df = pd.read_csv(f)
+            df = pd.read_csv(f, sep="|" if f.suffix.lower() == ".psv" else ",")
         except Exception:  # noqa: BLE001 - skip unreadable files
             continue
         cols = {c.lower(): c for c in df.columns}
-        if "hour" not in cols or "sepsislabel" not in cols:
+        # Official Challenge files use ICULOS (ICU length of stay) as the
+        # hourly index; some normalized CSV exports use Hour instead.
+        time_col = cols.get("hour") or cols.get("iculos")
+        if time_col is None or "sepsislabel" not in cols:
             continue
         pid = f.stem
 
@@ -174,7 +181,7 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
         labels: list[tuple[datetime, int]] = []
         t0 = datetime(2026, 1, 1, tzinfo=UTC)
         for _, row in df.iterrows():
-            hour = float(row[cols["hour"]])
+            hour = float(row[time_col])
             ts = t0 + timedelta(hours=hour)
             label = int(float(row[cols["sepsislabel"]]) or 0)
             labels.append((ts, label))
