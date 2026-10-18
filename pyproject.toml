@@ -1,0 +1,37 @@
+[project]
+name = "mediqueue"
+version = "0.1.0"
+description = "AI-powered real-time early-warning system for patient deterioration and dynamic triage (clinician decision support)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "sqlalchemy>=2.0",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scikit-learn>=1.4",
+    "lightgbm>=4.3",
+    "joblib>=1.4",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.uv]
+package = false

@@ -1,0 +1,19 @@
+{
+  "model_version_id": "deterioration-lightgbm-20261018T025723Z-549a0296",
+  "model_task": "deterioration",
+  "evaluated_dataset": "synthetic",
+  "split": "test",
+  "threshold": 0.85,
+  "metrics": {
+    "auroc": 0.8092297692557686,
+    "auprc": 0.7229127514016744,
+    "precision": 0.9855769230769231,
+    "recall": 0.4823529411764706,
+    "f1": 0.6477093206951027,
+    "threshold": 0.85,
+    "prevalence": 0.2511820330969267,
+    "n_samples": 1692
+  },
+  "evidence_category": "retrospective_model_performance",
+  "disclaimer": "Retrospective public/synthetic data only. Not prospective clinical validation. Public datasets do not represent the waiting-room target population. Synthetic system performance is a separate evidence category."
+}
