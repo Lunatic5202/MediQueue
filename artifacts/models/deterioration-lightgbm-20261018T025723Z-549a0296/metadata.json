@@ -1,9 +1,9 @@
 {
-  "id": "deterioration-lightgbm-20261018T025723Z-549a0296",
+  "id": "deterioration-lightgbm-20261018T055043Z-d2ee00c4",
   "kind": "lightgbm",
   "task": "deterioration",
   "dataset": "synthetic",
-  "dataset_hash": "549a02964d2c2658d93bcdcc8d48e99f858a364f0a3fc5b26f9bf97528541bf2",
+  "dataset_hash": "d2ee00c45df9a25cbb0dc3e18d5e96ebad7025aff2f8a0684e64ee3f0b2dbbca",
   "feature_schema_hash": "d362fb2987b2d0a9",
   "feature_order": [
     "heart_rate__latest",
@@ -56,33 +56,35 @@
     "global__minutes_since_last_any",
     "global__low_history"
   ],
-  "threshold": 0.85,
+  "threshold": 0.17,
+  "threshold_policy": "highest threshold with validation recall >= 0.80",
+  "calibration": "isotonic regression fitted on the validation split",
   "metrics": {
     "validation": {
-      "auroc": 0.8029657290238356,
-      "auprc": 0.7254731120574092,
-      "precision": 0.980440097799511,
-      "recall": 0.5154241645244216,
-      "f1": 0.6756529064869419,
-      "threshold": 0.85,
-      "prevalence": 0.24282147315855182,
-      "n_samples": 3204
+      "auroc": 0.8665144456059405,
+      "auprc": 0.7775740481483392,
+      "precision": 0.4817813765182186,
+      "recall": 0.8321678321678322,
+      "f1": 0.6102564102564103,
+      "threshold": 0.17,
+      "prevalence": 0.2693032015065913,
+      "n_samples": 2124
     },
     "test": {
-      "auroc": 0.8107618431528664,
-      "auprc": 0.7158151129191048,
-      "precision": 0.9699248120300752,
-      "recall": 0.48375,
-      "f1": 0.6455379482902419,
-      "threshold": 0.85,
-      "prevalence": 0.24154589371980675,
-      "n_samples": 3312
+      "auroc": 0.801627646192297,
+      "auprc": 0.7264998274982014,
+      "precision": 0.44234800838574423,
+      "recall": 0.717687074829932,
+      "f1": 0.5473411154345007,
+      "threshold": 0.17,
+      "prevalence": 0.26344086021505375,
+      "n_samples": 2232
     },
-    "train_samples": 15084,
-    "val_samples": 3204,
-    "test_samples": 3312,
-    "positive_rate_train": 0.2521214531954389,
+    "train_samples": 10044,
+    "val_samples": 2124,
+    "test_samples": 2232,
+    "positive_rate_train": 0.2545798486658702,
     "class_imbalance_note": "Class-weighted loss used (scale_pos_weight / class_weight=balanced). SMOTE not used: synthetic minority trajectories may be implausible."
   },
-  "created_at": "2026-10-18T02:57:23.886749+00:00"
+  "created_at": "2026-10-18T05:50:43.114720+00:00"
 }
