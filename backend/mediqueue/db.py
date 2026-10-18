@@ -6,7 +6,7 @@ Works with SQLite (default) and PostgreSQL via MEDIQUEUE_DATABASE_URL.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,6 @@ from sqlalchemy import (
     Text,
     TypeDecorator,
     create_engine,
-    select,
     text,
 )
 from sqlalchemy.engine import Engine
@@ -45,14 +44,14 @@ class UTCDateTime(TypeDecorator):
         if value is None:
             return None
         if isinstance(value, datetime) and value.tzinfo is not None:
-            value = value.astimezone(timezone.utc)
+            value = value.astimezone(UTC)
             if dialect.name == "sqlite":
                 value = value.replace(tzinfo=None)
         return value
 
     def process_result_value(self, value: Any, dialect: Any) -> Any:
         if isinstance(value, datetime) and value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
+            return value.replace(tzinfo=UTC)
         return value
 
 convention = {
@@ -184,6 +183,14 @@ clinicians = Table(
     Column("created_at", UTCDateTime(), nullable=False),
 )
 
+revoked_tokens = Table(
+    "revoked_tokens",
+    metadata,
+    Column("jti", String(64), primary_key=True),
+    Column("exp", UTCDateTime(), nullable=False),  # purge after this time
+    Column("revoked_at", UTCDateTime(), nullable=False),
+)
+
 audit_events = Table(
     "audit_events",
     metadata,
@@ -282,6 +289,8 @@ def _install_sqlite_append_only_triggers(engine: Engine) -> None:
 
 def init_db(engine: Engine | None = None) -> None:
     eng = engine or get_engine()
+    # Production schemas are managed by Alembic (`alembic upgrade head`); create_all is
+    # a no-op for tables that already exist and is only for dev/tests/first run.
     metadata.create_all(eng)  # includes the secondary indexes above
     if eng.url.get_backend_name() == "sqlite":
         _install_sqlite_append_only_triggers(eng)
@@ -295,7 +304,7 @@ def dispose_engine() -> None:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def to_json(obj: Any) -> str:

@@ -9,23 +9,22 @@ completed when its audit record could not be persisted.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 
-from .config import get_settings
 from .db import (
-    alerts,
     feature_sets,
     patients,
-    recommendations,
     risk_assessments,
     to_json,
     utcnow,
 )
-from .modules import history, inference, risk as risk_mod
+from .modules import history, inference
+from .modules import risk as risk_mod
 from .modules.audit import record_audit, record_event
 from .modules.features import FeatureResult, compute_features
 from .modules.inference import InferenceError
@@ -62,7 +61,7 @@ BroadcastFn = Callable[[dict[str, Any]], None]
 
 def _stage_timer(stages: dict[str, float], name: str) -> Any:
     class _T:
-        def __enter__(self) -> "_T":
+        def __enter__(self) -> _T:
             self.start = time.perf_counter()
             return self
 
@@ -147,8 +146,7 @@ def process_observation(
     """
     from .modules.validation import validate_and_normalize
 
-    settings = get_settings()
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     stages: dict[str, float] = {}
     result = PipelineResult(status="accepted")
 

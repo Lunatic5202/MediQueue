@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -38,8 +37,12 @@ def _try_load_model() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    get_settings().validate_for_startup()
     init_db(get_engine())
-    ensure_seed_users()
+    if get_settings().seed_users:
+        ensure_seed_users()
+    else:
+        logger.info("demo seed users disabled (MEDIQUEUE_SEED_USERS=false)")
     _try_load_model()
     yield
     dispose_engine()
@@ -56,10 +59,12 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
     )
+    origins = settings.cors_origin_list() or ["*"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # prototype; tighten for any shared deployment
-        allow_credentials=True,
+        allow_origins=origins,
+        # Browsers reject credentials with a wildcard origin; only enable with explicit origins.
+        allow_credentials="*" not in origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )

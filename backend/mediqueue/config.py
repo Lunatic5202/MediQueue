@@ -29,8 +29,21 @@ def _env_str(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+DEV_SECRET = "dev-only-insecure-secret"
+
+
 @dataclass
 class Settings:
+    # --- Environment: "dev" (default) or "production" ---
+    env: str = field(default_factory=lambda: _env_str("MEDIQUEUE_ENV", "dev").lower())
+
     # --- Persistence ---
     database_url: str = field(
         default_factory=lambda: _env_str(
@@ -100,7 +113,22 @@ class Settings:
 
     # --- Security ---
     secret_key: str = field(
-        default_factory=lambda: _env_str("MEDIQUEUE_SECRET_KEY", "dev-only-insecure-secret")
+        default_factory=lambda: _env_str("MEDIQUEUE_SECRET_KEY", DEV_SECRET)
+    )
+    # Demo accounts: on by default in dev, off in production unless opted in.
+    seed_users: bool = field(
+        default_factory=lambda: _env_bool(
+            "MEDIQUEUE_SEED_USERS", _env_str("MEDIQUEUE_ENV", "dev").lower() != "production"
+        )
+    )
+    # Comma-separated origins; "*" only allowed in dev.
+    cors_origins: str = field(default_factory=lambda: _env_str("MEDIQUEUE_CORS_ORIGINS", "*"))
+    # Login throttling (per client IP + username, in-memory).
+    login_max_attempts: int = field(
+        default_factory=lambda: _env_int("MEDIQUEUE_LOGIN_MAX_ATTEMPTS", 5)
+    )
+    login_window_seconds: int = field(
+        default_factory=lambda: _env_int("MEDIQUEUE_LOGIN_WINDOW_SECONDS", 300)
     )
     token_ttl_seconds: int = field(
         default_factory=lambda: _env_int("MEDIQUEUE_TOKEN_TTL_SECONDS", 8 * 3600)
@@ -116,6 +144,28 @@ class Settings:
     deterioration_horizon_minutes: float = field(
         default_factory=lambda: _env_float("MEDIQUEUE_DETERIORATION_HORIZON_MINUTES", 30.0)
     )
+
+    @property
+    def is_production(self) -> bool:
+        return self.env == "production"
+
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def validate_for_startup(self) -> None:
+        """Refuse unsafe configuration outside development."""
+        if not self.is_production:
+            return
+        if self.secret_key == DEV_SECRET or len(self.secret_key) < 32:
+            raise RuntimeError(
+                "MEDIQUEUE_SECRET_KEY must be set to a random value of 32+ characters "
+                "when MEDIQUEUE_ENV=production"
+            )
+        if "*" in self.cors_origin_list():
+            raise RuntimeError(
+                "MEDIQUEUE_CORS_ORIGINS must list explicit origins when "
+                "MEDIQUEUE_ENV=production"
+            )
 
 
 _settings: Settings | None = None

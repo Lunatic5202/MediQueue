@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -14,7 +14,6 @@ from . import __version__
 from .config import get_settings
 from .db import (
     alerts,
-    audit_events,
     events,
     feature_sets,
     get_engine,
@@ -22,13 +21,11 @@ from .db import (
     patients,
     recommendations,
     risk_assessments,
-    observations,
     utcnow,
 )
 from .modules.audit import query_audit
-from .modules.features import compute_features, feature_schema_hash
 from .modules.history import load_window
-from .modules.inference import InferenceError, get_inference_engine
+from .modules.inference import get_inference_engine
 from .modules.recommendation import (
     RecommendationError,
     confirm_recommendation,
@@ -37,7 +34,7 @@ from .modules.recommendation import (
     reject_recommendation,
 )
 from .modules.simulator import get_replay_state, start_replay, stop_replay
-from .pipeline import PipelineError, ensure_patient, process_observation
+from .pipeline import PipelineError, process_observation
 from .realtime import hub
 from .schemas import (
     AuditEventOut,
@@ -51,19 +48,20 @@ from .schemas import (
     ObservationIn,
     PatientCreate,
     QueueOut,
-    RecommendationOut,
     ReplayStartIn,
     ReplayStatusOut,
     RiskAssessmentOut,
 )
 from .security import (
-    AdminUser,
     AuditorUser,
     ClinicianUser,
     ReplayOperator,
+    check_login_allowed,
+    clear_login_failures,
     current_user,
-    ensure_seed_users,
     issue_token,
+    record_login_failure,
+    revoke_token,
     verify_credentials,
 )
 
@@ -74,10 +72,20 @@ api = APIRouter(prefix="/api")
 # Auth
 # --------------------------------------------------------------------------
 @api.post("/auth/login", response_model=LoginOut, tags=["auth"])
-def login(body: LoginIn) -> Any:
+def login(body: LoginIn, request: Request) -> Any:
+    ip = request.client.host if request.client else "unknown"
+    wait = check_login_allowed(ip, body.username)
+    if wait:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts; try again later",
+            headers={"Retry-After": str(wait)},
+        )
     user = verify_credentials(body.username, body.password)
     if user is None:
+        record_login_failure(ip, body.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    clear_login_failures(ip, body.username)
     token, expires = issue_token(user["username"], user["role"])
     return LoginOut(token=token, role=user["role"], username=user["username"], expires_at=expires)
 
@@ -85,6 +93,12 @@ def login(body: LoginIn) -> Any:
 @api.get("/auth/me", tags=["auth"])
 async def me(user: dict = Depends(current_user)) -> Any:
     return {"username": user["username"], "role": user["role"]}
+
+
+@api.post("/auth/logout", tags=["auth"])
+def logout(user: dict = Depends(current_user)) -> Any:
+    revoke_token(user["token"])
+    return {"status": "logged_out"}
 
 
 # --------------------------------------------------------------------------
@@ -446,8 +460,8 @@ def _apply_decision(
                 )
             else:
                 raise RecommendationError("invalid_action", f"unknown action {action}")
-            from .modules.audit import record_audit
             from .db import patients as patients_tbl
+            from .modules.audit import record_audit
 
             record_audit(
                 conn,
