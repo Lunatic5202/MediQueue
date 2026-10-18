@@ -17,6 +17,7 @@ from .datasets import (
     build_feature_matrix,
     dataset_hash,
     generate_synthetic_corpus,
+    load_generic_training_csv,
     load_physionet2019,
 )
 from .train import _metrics, patient_level_split
@@ -92,6 +93,10 @@ def evaluate_artifact(
         if not data_dir:
             raise ValueError("data_dir required for physionet")
         corpus = load_physionet2019(data_dir)
+    elif dataset == "generic":
+        if not data_dir:
+            raise ValueError("data_dir required for generic CSV")
+        corpus = load_generic_training_csv(data_dir)
     else:
         raise ValueError(f"unknown dataset {dataset!r}")
 
