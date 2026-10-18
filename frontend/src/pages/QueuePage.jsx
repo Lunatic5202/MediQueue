@@ -6,7 +6,6 @@ import {
   Typography, Link, MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import PersonIcon from "@mui/icons-material/Person";
 import EmergencyIcon from "@mui/icons-material/WarningAmber";
 import HourglassBottomIcon from "@mui/icons-material/HourglassBottom";
 import MonitoringIcon from "@mui/icons-material/MonitorHeart";
@@ -101,7 +100,7 @@ export default function QueuePage({ lastEvent }) {
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", xl: "repeat(4,minmax(0,1fr))" }, gap: 1.5 }}>
         <StatCard icon={<GroupsIcon />} label="Patients in queue" value={data ? allItems.length : "—"} color="#2563eb" hint="Current active cohort" />
-        <StatCard icon={<EmergencyIcon />} label="High-risk signals" value={data ? highCount : "—"} color="#b91c1c" hint="Requires clinician review" />
+        <StatCard icon={<EmergencyIcon />} label="High risk now" value={data ? highCount : "—"} color="#b91c1c" hint="Requires clinician review" />
         <StatCard icon={<MonitoringIcon />} label="Pending decisions" value={data ? pendingRecs : "—"} color="#6d28d9" hint="Recommendations awaiting review" />
         <StatCard icon={<HourglassBottomIcon />} label="Low-confidence scores" value={data ? lowConf : "—"} color="#b45309" hint="Interpret with added caution" />
       </Box>
