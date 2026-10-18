@@ -229,17 +229,24 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
     return corpus
 
 
-def load_generic_csv(path: str | Path) -> list[PatientSeries]:
-    """Generic long-format CSV loader (documented in docs/datasets.md).
+def load_generic_csv(
+    path: str | Path, require_labels: bool = False
+) -> list[PatientSeries]:
+    """Load generic long-format CSV; labels are optional unless requested.
 
-    Required columns: patient_id, vital_type, value, unit, device_ts, label
-    (label is 0/1 at that timestamp; optional).
+    Required columns: patient_id, vital_type, value, unit, device_ts.
+    Labels, when present, must be 0/1. Supervised training requires a label
+    on every row, so use load_generic_training_csv() for training/evaluation.
     """
     df = pd.read_csv(path)
     required = {"patient_id", "vital_type", "value", "unit", "device_ts"}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"generic CSV missing columns: {sorted(missing)}")
+    if require_labels and "label" not in df.columns:
+        raise ValueError("generic CSV requires a label column for supervised training")
+    if require_labels and df["label"].isna().any():
+        raise ValueError("generic CSV requires a non-missing label on every row")
     df["device_ts"] = pd.to_datetime(df["device_ts"], utc=True)
     corpus: list[PatientSeries] = []
     for pid, group in df.groupby("patient_id"):
@@ -284,6 +291,17 @@ def load_generic_csv(path: str | Path) -> list[PatientSeries]:
             )
         )
     return corpus
+
+
+def load_generic_training_csv(path: str | Path) -> list[PatientSeries]:
+    """Load a fully labeled generic CSV only after its quality audit passes."""
+    from .dataset_quality import audit_generic_csv
+
+    report = audit_generic_csv(path)
+    if report["status"] != "ok":
+        problems = report["errors"] + report["warnings"]
+        raise ValueError("generic CSV quality audit did not pass: " + "; ".join(problems))
+    return load_generic_csv(path, require_labels=True)
 
 
 def _canonical_json(value: Any) -> str:
