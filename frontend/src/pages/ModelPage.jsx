@@ -51,7 +51,7 @@ export default function ModelPage() {
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 750 }}>Model & system health</Typography>
         <Typography variant="body2" color="text.secondary">
-          Service readiness, model availability and the safeguards behind MediQueue's risk signals.
+          Service readiness, model availability and the safeguards behind MediQueue&apos;s risk signals.
         </Typography>
       </Box>
 
