@@ -17,10 +17,9 @@ import argparse
 import asyncio
 import json
 import statistics
-import sys
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -87,7 +86,7 @@ async def run(args: argparse.Namespace) -> int:
             nonlocal failures, duplicates
             async with semaphore:
                 extra = factory(rng)
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 payload = {
                     "patient_id": patient_id,
                     "vital_type": vital,
@@ -132,7 +131,7 @@ async def run(args: argparse.Namespace) -> int:
 
     total_events = len(patient_ids) * len(vitals) * rounds
     report = {
-        "started_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
         "config": {
             "base_url": base,
             "patients": args.patients,

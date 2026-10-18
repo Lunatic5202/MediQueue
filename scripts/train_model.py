@@ -34,6 +34,10 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--kind", choices=["lightgbm", "logreg"], default="lightgbm")
     parser.add_argument("--out-dir", default=None)
+    parser.add_argument(
+        "--target-recall", type=float, default=0.80,
+        help="choose the highest validation threshold reaching this recall (0 = F1-optimal)",
+    )
     args = parser.parse_args()
 
     result = train_model(
@@ -44,6 +48,7 @@ def main() -> int:
         seed=args.seed,
         kind=args.kind,
         out_dir=args.out_dir,
+        target_recall=args.target_recall or None,
     )
     print(
         json.dumps(
