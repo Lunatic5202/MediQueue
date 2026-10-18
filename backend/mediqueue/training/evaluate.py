@@ -82,6 +82,9 @@ def evaluate_artifact(
     meta = load_artifact_metadata(art)
     task = meta["task"]
     threshold = float(meta.get("threshold", 0.5))
+    valid_splits = {"test", "validation", "train", "all"}
+    if split not in valid_splits:
+        raise ValueError(f"split must be one of {sorted(valid_splits)}")
 
     if dataset == "synthetic":
         corpus = generate_synthetic_corpus(n_patients=n_patients, seed=seed)
@@ -98,6 +101,8 @@ def evaluate_artifact(
     chosen = {"test": test_ids, "validation": val_ids, "train": train_ids, "all": None}[split]
     if chosen is not None:
         df = df[df["patient_id"].isin(chosen)]
+    if df.empty:
+        raise ValueError(f"evaluation split {split!r} contains no samples")
     evaluation_corpus = (
         corpus
         if chosen is None
