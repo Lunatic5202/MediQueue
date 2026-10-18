@@ -52,3 +52,43 @@ def test_logout_revokes_token(client, token):
     assert client.get("/api/auth/me", headers=h).status_code == 401
     # logout twice is rejected (token no longer valid), never an error 500
     assert client.post("/api/auth/logout", headers=h).status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("variable", "value", "message"),
+    [
+        ("MEDIQUEUE_BAND_WATCH", "0.8", "Risk-band thresholds"),
+        ("MEDIQUEUE_ALERT_THRESHOLD", "1.1", "MEDIQUEUE_ALERT_THRESHOLD"),
+        ("MEDIQUEUE_MATERIAL_WORSENING_DELTA", "0", "MEDIQUEUE_MATERIAL_WORSENING_DELTA"),
+        ("MEDIQUEUE_ALERT_COOLDOWN_MINUTES", "nan", "MEDIQUEUE_ALERT_COOLDOWN_MINUTES"),
+    ],
+)
+def test_invalid_thresholds_rejected_in_development(monkeypatch, variable, value, message):
+    from mediqueue.config import get_settings, reset_settings
+
+    monkeypatch.setenv("MEDIQUEUE_ENV", "dev")
+    monkeypatch.setenv(variable, value)
+    reset_settings()
+    try:
+        with pytest.raises(RuntimeError, match=message):
+            get_settings().validate_for_startup()
+    finally:
+        reset_settings()
+
+
+def test_valid_experimental_thresholds_are_accepted(monkeypatch):
+    from mediqueue.config import get_settings, reset_settings
+
+    monkeypatch.setenv("MEDIQUEUE_ENV", "dev")
+    monkeypatch.setenv("MEDIQUEUE_BAND_WATCH", "0.17")
+    monkeypatch.setenv("MEDIQUEUE_BAND_ELEVATED", "0.30")
+    monkeypatch.setenv("MEDIQUEUE_BAND_HIGH", "0.50")
+    monkeypatch.setenv("MEDIQUEUE_ALERT_THRESHOLD", "0.17")
+    reset_settings()
+    try:
+        settings = get_settings()
+        settings.validate_for_startup()
+        assert settings.band_watch == 0.17
+        assert settings.alert_absolute_threshold == 0.17
+    finally:
+        reset_settings()
