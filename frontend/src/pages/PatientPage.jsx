@@ -184,7 +184,12 @@ export default function PatientPage({ lastEvent, onAction }) {
 
   const pending = recs.find((r) => r.status === "pending");
   const observations = history?.observations ?? [];
-  const latest = risk?.latest_features?.features ?? {};
+  const latestFeatures = history?.latest_features ?? {};
+  const latest = latestFeatures.features ?? {};
+  const deviceTimes = observations.map((o) => new Date(o.device_ts).getTime());
+  const spanMinutes = deviceTimes.length
+    ? (Math.max(...deviceTimes) - Math.min(...deviceTimes)) / 60000
+    : 0;
   const assessments = timeline?.assessments ?? [];
 
   return (
@@ -196,7 +201,7 @@ export default function PatientPage({ lastEvent, onAction }) {
         <Box sx={{ flex: 1 }}>
           <Typography variant="h5">{patient.patient_id}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Registered {patient.registered_at ? new Date(patient.registered_at).toLocaleString() : "—"} ·{" "}
+            Registered {patient.arrival_time ? new Date(patient.arrival_time).toLocaleString() : "—"} ·{" "}
             {observations.length} observations in window
           </Typography>
         </Box>
@@ -205,7 +210,7 @@ export default function PatientPage({ lastEvent, onAction }) {
           band={risk?.risk_band}
           score={risk?.risk_score}
           stale={risk?.stale}
-          lowConfidence={risk?.low_confidence ?? risk?.latest_features?.low_confidence}
+          lowConfidence={risk?.low_confidence ?? latestFeatures.low_confidence}
         />
       </Stack>
 
@@ -236,7 +241,7 @@ export default function PatientPage({ lastEvent, onAction }) {
             <Divider sx={{ mb: 1.5 }} />
             {risk?.status === "abstained" || risk?.risk_score == null ? (
               <Alert severity="info">
-                {risk?.detail?.reason === "insufficient_history"
+                {risk?.reason === "insufficient_history"
                   ? "Not enough history yet — at least 3 readings spanning 10 minutes required. Score withheld; never displayed as safe."
                   : "No score available."}
               </Alert>
@@ -258,8 +263,8 @@ export default function PatientPage({ lastEvent, onAction }) {
                   <ListItemText
                     primary="Missing vitals (4h window)"
                     secondary={
-                      (risk?.latest_features?.missing_vitals ?? []).length
-                        ? risk.latest_features.missing_vitals.join(", ")
+                      (latestFeatures.missing_vitals ?? []).length
+                        ? latestFeatures.missing_vitals.join(", ")
                         : "none"
                     }
                   />
@@ -267,7 +272,7 @@ export default function PatientPage({ lastEvent, onAction }) {
                 <ListItem>
                   <ListItemText
                     primary="Reading count / span"
-                    secondary={`${risk?.latest_features?.reading_count ?? "—"} readings · ${Math.round(risk?.latest_features?.span_minutes ?? 0)} min`}
+                    secondary={`${latest.global__reading_count ?? "—"} readings · ${Math.round(spanMinutes)} min`}
                   />
                 </ListItem>
               </List>

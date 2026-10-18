@@ -89,11 +89,11 @@ export default function QueuePage({ lastEvent }) {
       rows = rows.filter((r) => r.patient_id.toLowerCase().includes(needle));
     }
     if (bandFilter !== "all") {
-      rows = rows.filter((r) => (r.risk_band ?? "unknown") === bandFilter);
+      rows = rows.filter((r) => (r.latest_risk_band ?? "unknown") === bandFilter);
     }
     return [...rows].sort((a, b) => {
-      const ba = BAND_ORDER[a.risk_band ?? "unknown"];
-      const bb = BAND_ORDER[b.risk_band ?? "unknown"];
+      const ba = BAND_ORDER[a.latest_risk_band ?? "unknown"];
+      const bb = BAND_ORDER[b.latest_risk_band ?? "unknown"];
       if (ba !== bb) return ba - bb;
       if ((b.open_alert_count ?? 0) !== (a.open_alert_count ?? 0))
         return (b.open_alert_count ?? 0) - (a.open_alert_count ?? 0);
@@ -104,9 +104,9 @@ export default function QueuePage({ lastEvent }) {
     });
   }, [data, query, bandFilter]);
 
-  const highCount = (data?.items ?? []).filter((i) => i.risk_band === "high").length;
+  const highCount = (data?.items ?? []).filter((i) => i.latest_risk_band === "high").length;
   const pendingRecs = (data?.items ?? []).filter((i) => i.pending_recommendation).length;
-  const lowConf = (data?.items ?? []).filter((i) => i.low_confidence).length;
+  const lowConf = (data?.items ?? []).filter((i) => i.latest_assessment_low_confidence).length;
 
   return (
     <Stack spacing={2.5}>
@@ -201,14 +201,16 @@ export default function QueuePage({ lastEvent }) {
                       <TriageChip category={row.triage_category} />
                     </TableCell>
                     <TableCell>
-                      {row.risk_score != null && !row.stale ? (row.risk_score * 100).toFixed(0) : "—"}
+                      {row.latest_risk_score != null && !row.latest_assessment_stale
+                        ? (row.latest_risk_score * 100).toFixed(0)
+                        : "—"}
                     </TableCell>
                     <TableCell>
                       <RiskChip
-                        band={row.risk_band}
-                        score={row.risk_score}
-                        stale={row.stale}
-                        lowConfidence={row.low_confidence}
+                        band={row.latest_risk_band}
+                        score={row.latest_risk_score}
+                        stale={row.latest_assessment_stale}
+                        lowConfidence={row.latest_assessment_low_confidence}
                       />
                     </TableCell>
                     <TableCell>
