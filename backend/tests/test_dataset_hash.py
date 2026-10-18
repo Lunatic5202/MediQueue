@@ -196,3 +196,16 @@ def test_dataset_hash_treats_missing_and_empty_generation_parameters_equally():
     series = _series()
 
     assert dataset_hash([series]) == dataset_hash([series], {})
+
+
+def test_dataset_hash_is_stable_under_observation_dictionary_key_order():
+    from mediqueue.training.datasets import dataset_hash
+
+    first = _series()
+    second = _series()
+    second.observations = [
+        dict(reversed(list(observation.items())))
+        for observation in second.observations
+    ]
+
+    assert dataset_hash([first]) == dataset_hash([second])
