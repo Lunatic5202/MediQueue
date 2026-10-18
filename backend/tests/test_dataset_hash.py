@@ -77,3 +77,43 @@ def test_dataset_hash_changes_when_patient_identity_changes():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series(patient_id="p1")]) != dataset_hash([_series(patient_id="p2")])
+
+
+
+def test_dataset_hash_changes_when_diastolic_pressure_changes():
+    from mediqueue.training.datasets import dataset_hash
+
+    first = _series()
+    second = _series()
+    first.observations.append(
+        {
+            "patient_id": "p1",
+            "vital_type": "blood_pressure",
+            "value": 120.0,
+            "value_diastolic": 80.0,
+            "unit": "mmHg",
+            "device_ts": datetime(2026, 1, 1, 0, 10, tzinfo=UTC),
+        }
+    )
+    second.observations.append(
+        {
+            "patient_id": "p1",
+            "vital_type": "blood_pressure",
+            "value": 120.0,
+            "value_diastolic": 75.0,
+            "unit": "mmHg",
+            "device_ts": datetime(2026, 1, 1, 0, 10, tzinfo=UTC),
+        }
+    )
+
+    assert dataset_hash([first]) != dataset_hash([second])
+
+
+def test_dataset_hash_changes_when_observation_unit_changes():
+    from mediqueue.training.datasets import dataset_hash
+
+    first = _series()
+    second = _series()
+    second.observations[0]["unit"] = "beats/minute"
+
+    assert dataset_hash([first]) != dataset_hash([second])
