@@ -157,6 +157,10 @@ def train_model(
     val_df = df[df["patient_id"].isin(val_ids)]
     test_df = df[df["patient_id"].isin(test_ids)]
 
+    for split_name, split_df in (("train", train_df), ("validation", val_df), ("test", test_df)):
+        if split_df.empty:
+            raise ValueError(f"{split_name} split contains no samples; adjust corpus/labels")
+
     X_train = train_df[feature_cols].astype(float)
     y_train = train_df["label"].astype(int)
     X_val = val_df[feature_cols].astype(float)
