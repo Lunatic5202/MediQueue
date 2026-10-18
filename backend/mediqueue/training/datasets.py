@@ -69,7 +69,6 @@ def generate_synthetic_corpus(
     and all later samples; build_feature_matrix applies the configured
     prediction horizon when constructing deterioration targets.
     """
-    settings = get_settings()
     rng = random.Random(seed)
     corpus: list[PatientSeries] = []
     n_steps = int((hours * 60.0) / step_minutes)
