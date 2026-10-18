@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 
+import pandas as pd
+import pytest
+
 
 def test_train_creates_versioned_artifact_with_hashes(tmp_path, monkeypatch):
     monkeypatch.setenv("MEDIQUEUE_DATABASE_URL", f"sqlite:///{tmp_path/'t.db'}")
@@ -115,3 +118,40 @@ def test_trained_artifact_is_calibrated(tmp_path):
 
     r = train_model(n_patients=60, out_dir=str(tmp_path), register=False)
     assert (r.artifact_dir / "calibrator.joblib").exists()
+
+
+
+def test_evaluate_rejects_unknown_split_before_loading_data(tmp_path):
+    from mediqueue.training.evaluate import evaluate_artifact
+
+    artifact = tmp_path / "artifact"
+    artifact.mkdir()
+    (artifact / "metadata.json").write_text(
+        json.dumps({"id": "test-model", "task": "deterioration", "threshold": 0.5})
+    )
+
+    with pytest.raises(ValueError, match="split must be one of"):
+        evaluate_artifact(artifact, split="production")
+
+
+def test_evaluate_rejects_empty_selected_split(tmp_path, monkeypatch):
+    from mediqueue.training import evaluate
+    from mediqueue.training.datasets import PatientSeries
+
+    artifact = tmp_path / "artifact"
+    artifact.mkdir()
+    (artifact / "metadata.json").write_text(
+        json.dumps({"id": "test-model", "task": "deterioration", "threshold": 0.5})
+    )
+    monkeypatch.setattr(
+        evaluate, "generate_synthetic_corpus",
+        lambda **kwargs: [PatientSeries("p1", observations=[], labels=[], positive=False)],
+    )
+    monkeypatch.setattr(
+        evaluate, "build_feature_matrix",
+        lambda corpus, task: pd.DataFrame({"patient_id": ["p1"], "label": [0]}),
+    )
+    monkeypatch.setattr(evaluate, "patient_level_split", lambda corpus, seed: (["p1"], [], []))
+
+    with pytest.raises(ValueError, match="evaluation split 'test' contains no samples"):
+        evaluate.evaluate_artifact(artifact, dataset="synthetic", split="test")
