@@ -36,9 +36,16 @@ licenses.
   `training_setA/p00101.psv`) with columns such as
   `Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel` (matched case-insensitively).
   The loader also accepts comma-delimited `.csv` files for converted copies.
-- **Label: the supplied `SepsisLabel`.** This sepsis label is a *different
-  clinical target* from the general-deterioration proxy — never blend the
-  two labels, never mix their metrics in one report.
+- **Target: six-hour early sepsis warning.** The loader treats the first
+  timestamp with `SepsisLabel=1` as onset. Samples strictly before onset are
+  labeled positive when onset is within the next six hours; samples earlier
+  than that window are negative, and samples at/after onset are excluded.
+  This avoids training a purported early-warning model on post-onset readings.
+- This sepsis target is a *different clinical target* from the
+  general-deterioration proxy — never blend the two labels or their metrics.
+  The six-hour horizon is an implementation choice for this benchmark and
+  must be checked against the intended protocol before comparing published
+  challenge scores.
 
 ```bash
 .venv/bin/python scripts/train_model.py --task sepsis --dataset physionet \
