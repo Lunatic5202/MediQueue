@@ -33,6 +33,16 @@ On the held-out split from the training corpus the same model scores AUROC 0.802
 - Isotonic calibration is fitted on a small validation set; the 0.8–1.0 range is sparse and unreliable.
 - No subgroup analysis (age, sex), no prospective or external validation, no drift monitoring.
 
+## Offline evaluation report provenance
+
+The offline evaluation command writes JSON and Markdown reports. These reports include the model version, task, dataset, selected split, threshold, metrics, operating points, calibration summary, and an evidence disclaimer.
+
+- **Evaluation dataset fingerprint:** a SHA-256 digest of canonicalized dataset parameters and patient records, including patient IDs, observations, timestamps, positive flags, and labels. Patient and observation ordering is normalized, so changing iteration order alone does not change the digest.
+- **Evaluation seed:** records the seed supplied to the evaluator. For generated synthetic data, use the same seed and patient count to recreate the same generated corpus.
+- **Patient and sample counts:** describe the selected evaluation data after feature-matrix construction and split filtering. They are useful for checking report scope, but do not establish dataset representativeness.
+- **Split:** `test`, `validation`, `train`, or `all`. Prefer the held-out test split for final offline reporting; validation data is used during model development and threshold/calibration selection.
+- **Interpretation:** matching fingerprints help identify matching source data and generation parameters. They do not prove that the evaluation is unbiased, that labels are correct, or that the model generalizes clinically. Synthetic and public-data metrics are not prospective clinical validation.
+
 ## Reproduce
 ```
 python scripts/train_model.py --n-patients 400 --target-recall 0.80
