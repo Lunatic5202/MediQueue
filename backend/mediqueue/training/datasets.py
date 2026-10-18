@@ -264,7 +264,17 @@ def load_generic_csv(path: str | Path) -> list[PatientSeries]:
                 }
             )
             if "label" in group.columns and not pd.isna(row.get("label")):
-                labels.append((ts, int(row["label"])))
+                try:
+                    label_value = float(row["label"])
+                except (TypeError, ValueError) as exc:
+                    raise ValueError(
+                        f"generic CSV label must be 0 or 1 for patient {pid!r} at {ts.isoformat()}"
+                    ) from exc
+                if label_value not in (0.0, 1.0):
+                    raise ValueError(
+                        f"generic CSV label must be 0 or 1 for patient {pid!r} at {ts.isoformat()}"
+                    )
+                labels.append((ts, int(label_value)))
         corpus.append(
             PatientSeries(
                 patient_id=str(pid),
