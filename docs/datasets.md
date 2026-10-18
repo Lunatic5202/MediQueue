@@ -12,10 +12,11 @@ licenses.
 - Generated in-process by `generate_synthetic_corpus()`; no download needed.
 - Patient timelines (default 3 h, 1-min or 5-min cadence) with 4 vitals;
   ~35 % of patients have a hidden deterioration onset.
-- **Label (general-deterioration proxy):** positive from
-  `deterioration_horizon_minutes` (default 30) before onset **through series
-  end** — a deteriorated patient stays at risk, so the worst states are not
-  labeled negative.
+- **Raw label:** 0 before the hidden deterioration onset and 1 from onset
+  through series end. The feature-matrix builder projects these onset labels
+  backward by the configured prediction horizon (default 30 minutes), exactly
+  once. This keeps the target horizon explicit and avoids double-extending
+  positive labels.
 - **Evidence category: system evidence only.** Synthetic performance shows
   the pipeline works; it is *not* clinical evidence and must never be
   reported as model clinical performance.
