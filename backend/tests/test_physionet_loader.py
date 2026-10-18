@@ -7,9 +7,9 @@ def test_load_physionet_official_pipe_separated_psv(tmp_path):
     patient = tmp_path / "training_setA" / "p00001.psv"
     patient.parent.mkdir()
     patient.write_text(
-        "Hour|HR|O2Sat|Temp|SBP|DBP|SepsisLabel\n"
-        "1|88|98|36.8|120|75|0\n"
-        "2|105|95|37.5|110|70|1\n",
+        "HR|O2Sat|Temp|SBP|DBP|ICULOS|SepsisLabel\n"
+        "88|98|36.8|120|75|1|0\n"
+        "105|95|37.5|110|70|2|1\n",
         encoding="utf-8",
     )
 
