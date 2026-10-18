@@ -11,9 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pandas as pd
 
-from ..config import get_settings
 from ..modules.features import feature_names
 from .datasets import (
     build_feature_matrix,
@@ -21,6 +19,43 @@ from .datasets import (
     load_physionet2019,
 )
 from .train import _metrics, patient_level_split
+
+OPERATING_THRESHOLDS = (0.30, 0.50, 0.60, 0.75, 0.85)  # includes band cutoffs + default alert 0.60
+
+
+def operating_points(y: np.ndarray, p: np.ndarray, thresholds=OPERATING_THRESHOLDS) -> list[dict]:
+    """Precision/recall/alert-rate at fixed thresholds (what the dashboard would do)."""
+    rows = []
+    for t in thresholds:
+        pred = p >= t
+        tp = int((pred & (y == 1)).sum())
+        fp = int((pred & (y == 0)).sum())
+        fn = int((~pred & (y == 1)).sum())
+        rows.append(
+            {
+                "threshold": t,
+                "precision": tp / (tp + fp) if tp + fp else float("nan"),
+                "recall": tp / (tp + fn) if tp + fn else float("nan"),
+                "alert_rate": float(pred.mean()),
+            }
+        )
+    return rows
+
+
+def calibration(y: np.ndarray, p: np.ndarray, bins: int = 10) -> dict:
+    """Brier score, expected calibration error and reliability bins."""
+    edges = np.linspace(0, 1, bins + 1)
+    idx = np.clip(np.digitize(p, edges[1:-1]), 0, bins - 1)
+    rows, ece = [], 0.0
+    for b in range(bins):
+        m = idx == b
+        if not m.any():
+            continue
+        conf, obs = float(p[m].mean()), float(y[m].mean())
+        ece += m.mean() * abs(conf - obs)
+        rows.append({"bin": f"{edges[b]:.1f}-{edges[b + 1]:.1f}", "n": int(m.sum()),
+                     "mean_predicted": conf, "observed_rate": obs})
+    return {"brier": float(np.mean((p - y) ** 2)), "ece": float(ece), "bins": rows}
 
 
 def load_artifact_metadata(artifact_dir: Path) -> dict[str, Any]:
@@ -91,7 +126,8 @@ def evaluate_artifact(
             preds = engine.predict(feats)
             probs.append(preds.risk_score)
     y = df["label"].astype(int).to_numpy()
-    metrics = _metrics(y, np.asarray(probs), threshold)
+    p_arr = np.asarray(probs)
+    metrics = _metrics(y, p_arr, threshold)
 
     report = {
         "model_version_id": meta["id"],
@@ -100,6 +136,8 @@ def evaluate_artifact(
         "split": split,
         "threshold": threshold,
         "metrics": metrics,
+        "operating_points": operating_points(y, p_arr),
+        "calibration": calibration(y, p_arr),
         "evidence_category": "retrospective_model_performance",
         "disclaimer": (
             "Retrospective public/synthetic data only. Not prospective clinical "
@@ -135,6 +173,27 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> Path:
         f"| F1 | {m.get('f1', float('nan')):.4f} |",
         f"| Prevalence | {m.get('prevalence', float('nan')):.4f} |",
         f"| Samples | {m.get('n_samples')} |",
+        "",
+        "## Operating points",
+        "",
+        "| Threshold | Precision | Recall | Alert rate |",
+        "| --- | --- | --- | --- |",
+        *[
+            f"| {o['threshold']:.2f} | {o['precision']:.3f} | {o['recall']:.3f} | {o['alert_rate']:.3f} |"
+            for o in report.get("operating_points", [])
+        ],
+        "",
+        "## Calibration",
+        "",
+        f"Brier score **{report.get('calibration', {}).get('brier', float('nan')):.4f}**, "
+        f"expected calibration error **{report.get('calibration', {}).get('ece', float('nan')):.4f}**.",
+        "",
+        "| Predicted bin | n | Mean predicted | Observed rate |",
+        "| --- | --- | --- | --- |",
+        *[
+            f"| {b['bin']} | {b['n']} | {b['mean_predicted']:.3f} | {b['observed_rate']:.3f} |"
+            for b in report.get("calibration", {}).get("bins", [])
+        ],
         "",
         f"> {report.get('disclaimer', '')}",
         "",

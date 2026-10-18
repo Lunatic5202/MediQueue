@@ -8,9 +8,8 @@ dataset hash + feature-schema hash. The held-out test set is evaluated once.
 from __future__ import annotations
 
 import json
-import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +99,23 @@ def _tune_threshold(y_true: np.ndarray, y_prob: np.ndarray) -> float:
     return best_t
 
 
+def pick_threshold(
+    y_true: np.ndarray, y_prob: np.ndarray, target_recall: float | None = 0.80
+) -> tuple[float, str]:
+    """Sensitivity-first operating point for an early-warning model.
+
+    Returns the highest threshold whose validation recall is >= target_recall
+    (fewest alerts that still catch the target share of deteriorations). Falls
+    back to the F1-optimal threshold if the target is unreachable or disabled.
+    """
+    if target_recall is not None:
+        for t in np.arange(0.95, 0.049, -0.01):
+            pred = (y_prob >= t).astype(int)
+            if recall_score(y_true, pred, zero_division=0) >= target_recall:
+                return float(round(t, 2)), f"highest threshold with validation recall >= {target_recall:.2f}"
+    return _tune_threshold(y_true, y_prob), "F1-optimal on validation"
+
+
 def train_model(
     task: str = "deterioration",
     dataset: str = "synthetic",
@@ -109,6 +125,7 @@ def train_model(
     kind: str = "lightgbm",
     out_dir: str | None = None,
     register: bool = True,
+    target_recall: float | None = 0.80,
 ) -> TrainResult:
     settings = get_settings()
     if task not in ("deterioration", "sepsis"):
@@ -196,15 +213,27 @@ def train_model(
             return np.asarray(predictor.predict_proba(X[feature_cols].astype(float))[:, 1])
         return np.asarray(predictor.predict_proba(X)[:, 1])
 
+    # Calibrate raw scores on the validation split (class weighting distorts
+    # probabilities). Thresholds below are chosen on calibrated validation scores;
+    # the test split is untouched until the single final evaluation.
+    from sklearn.isotonic import IsotonicRegression
+
+    calibrator = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+    calibrator.fit(probs(X_val), y_val.to_numpy())
+    raw_probs = probs
+
+    def probs(X: pd.DataFrame) -> np.ndarray:  # noqa: F811 - calibrated scorer
+        return np.asarray(calibrator.predict(raw_probs(X)))
+
     y_val_prob = probs(X_val)
-    best_t = _tune_threshold(y_val.to_numpy(), y_val_prob)
+    best_t, threshold_policy = pick_threshold(y_val.to_numpy(), y_val_prob, target_recall)
 
     # Held-out test evaluated exactly once, at the tuned threshold.
     y_test_prob = probs(X_test)
     test_metrics = _metrics(y_test.to_numpy(), y_test_prob, best_t)
     val_metrics = _metrics(y_val.to_numpy(), y_val_prob, best_t)
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     version_id = f"{task}-{kind_name}-{ts}-{d_hash[:8]}"
     root = Path(out_dir or settings.artifacts_dir) / version_id
     root.mkdir(parents=True, exist_ok=True)
@@ -214,6 +243,8 @@ def train_model(
         booster.save_model(str(root / "model.txt"))
     else:
         joblib.dump(predictor, root / "model.joblib")
+
+    joblib.dump(calibrator, root / "calibrator.joblib")
 
     metrics = {
         "validation": val_metrics,
@@ -236,8 +267,10 @@ def train_model(
         "feature_schema_hash": f_hash,
         "feature_order": feature_cols,
         "threshold": best_t,
+        "threshold_policy": threshold_policy,
+        "calibration": "isotonic regression fitted on the validation split",
         "metrics": metrics,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
     (root / "metadata.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 

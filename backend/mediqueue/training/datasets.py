@@ -17,12 +17,12 @@ deterioration proxy are trained and reported separately.
 from __future__ import annotations
 
 import hashlib
-import math
 import random
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 import pandas as pd
 
@@ -88,7 +88,7 @@ def generate_synthetic_corpus(
 
         obs: list[dict[str, Any]] = []
         labels: list[tuple[datetime, int]] = []
-        t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        t0 = datetime(2026, 1, 1, tzinfo=UTC)
         for s in range(n_steps):
             ts = t0 + timedelta(minutes=s * step_minutes)
             mins = s * step_minutes
@@ -175,7 +175,7 @@ def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) ->
 
         obs: list[dict[str, Any]] = []
         labels: list[tuple[datetime, int]] = []
-        t0 = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        t0 = datetime(2026, 1, 1, tzinfo=UTC)
         for _, row in df.iterrows():
             hour = float(row[cols["hour"]])
             ts = t0 + timedelta(hours=hour)
@@ -289,8 +289,8 @@ def dataset_hash(corpus: Iterable[PatientSeries], params: dict[str, Any] | None 
     for s in corpus:
         n += 1
         pos += 1 if s.positive else 0
-        h.update(f"{s.patient_id}:{len(s.observations)}:{len(s.labels)}\n".encode("utf-8"))
-    h.update(f"n={n},pos={pos}".encode("utf-8"))
+        h.update(f"{s.patient_id}:{len(s.observations)}:{len(s.labels)}\n".encode())
+    h.update(f"n={n},pos={pos}".encode())
     return h.hexdigest()
 
 
