@@ -67,11 +67,16 @@ def test_evaluate_artifact_writes_report(tmp_path, monkeypatch):
         result.artifact_dir, dataset="synthetic", n_patients=15, seed=123, split="all"
     )
     assert report["evidence_category"] == "retrospective_model_performance"
+    assert len(report["evaluation_dataset_hash"]) == 64
+    assert report["evaluation_patient_count"] == 15
+    assert report["evaluation_sample_count"] == report["metrics"]["n_samples"]
+    assert report["evaluation_seed"] == 123
     assert 0.0 <= report["metrics"]["auroc"] <= 1.0 or report["metrics"]["auroc"] != report["metrics"]["auroc"]
     out = write_report(report, tmp_path / "reports")
     files = list(out.glob("*.md"))
     assert files
     assert "AUROC" in files[0].read_text()
+    assert "Evaluation dataset fingerprint" in files[0].read_text()
     reset_settings()
 
 

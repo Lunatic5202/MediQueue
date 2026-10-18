@@ -15,6 +15,7 @@ import numpy as np
 from ..modules.features import feature_names
 from .datasets import (
     build_feature_matrix,
+    dataset_hash,
     generate_synthetic_corpus,
     load_physionet2019,
 )
@@ -97,6 +98,17 @@ def evaluate_artifact(
     chosen = {"test": test_ids, "validation": val_ids, "train": train_ids, "all": None}[split]
     if chosen is not None:
         df = df[df["patient_id"].isin(chosen)]
+    evaluation_corpus = (
+        corpus
+        if chosen is None
+        else [series for series in corpus if series.patient_id in chosen]
+    )
+    evaluation_hash = dataset_hash(
+        evaluation_corpus,
+        params={"dataset": dataset, "task": task, "seed": seed, "split": split},
+    )
+    evaluation_patient_count = int(df["patient_id"].nunique())
+    evaluation_sample_count = int(len(df))
 
     engine = InferenceEngine()
     # Load from a pinned version id by pointing artifacts_dir at its parent.
@@ -134,6 +146,10 @@ def evaluate_artifact(
         "model_task": task,
         "evaluated_dataset": dataset,
         "split": split,
+        "evaluation_dataset_hash": evaluation_hash,
+        "evaluation_patient_count": evaluation_patient_count,
+        "evaluation_sample_count": evaluation_sample_count,
+        "evaluation_seed": seed,
         "threshold": threshold,
         "metrics": metrics,
         "operating_points": operating_points(y, p_arr),
@@ -163,6 +179,10 @@ def write_report(report: dict[str, Any], out_dir: str | Path) -> Path:
         f"- Task: **{report.get('model_task')}**",
         f"- Dataset: **{report.get('evaluated_dataset')}** ({report.get('split')} split)",
         f"- Threshold: {report.get('threshold')}",
+        f"- Evaluation dataset fingerprint: `{report.get('evaluation_dataset_hash', 'unavailable')}`",
+        f"- Evaluation patients: {report.get('evaluation_patient_count', 'unknown')}",
+        f"- Evaluation samples: {report.get('evaluation_sample_count', 'unknown')}",
+        f"- Evaluation seed: {report.get('evaluation_seed', 'unknown')}",
         "",
         "| Metric | Value |",
         "| --- | --- |",
