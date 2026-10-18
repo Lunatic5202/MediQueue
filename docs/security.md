@@ -9,7 +9,7 @@ posture and the safety controls around the AI pathway.
 - Username/password login at `POST /api/auth/login`.
 - Passwords stored as **PBKDF2-HMAC-SHA256** (salted, high iteration count).
 - Sessions are **stateless HMAC-signed bearer tokens** with an expiry
-  (`MEDIQUEUE_TOKEN_TTL_SECONDS`, default 8 h). Tokens are sent in the
+  (`MEDIQUEUE_TOKEN_TTL_SECONDS`, default 8 h). Each token carries a `jti`; `POST /api/auth/logout` adds it to a server-side denylist (`revoked_tokens`) until it would expire. Tokens are sent in the
   `Authorization: Bearer` header (WebSocket: `?token=` query param or
   `x-mq-token` header).
 - **Deployment requirement:** set `MEDIQUEUE_SECRET_KEY` to a random
@@ -78,10 +78,8 @@ but the API is the authority.
 
 ## Known limitations (prototype)
 
-- Tokens are stateless: logout is client-side only (no server-side
-  revocation list). Add a denylist/JTI store before production use.
-- No rate limiting or lockout on the login endpoint; front with a gateway
-  or add per-IP throttling.
+- Login throttling is in-memory per process (IP + username); use a gateway
+  or shared store when running multiple replicas.
 - SQLite default is for the prototype only; use PostgreSQL with least-
   privilege roles in deployment.
 - No PHI should be loaded for development — use the synthetic corpus or
