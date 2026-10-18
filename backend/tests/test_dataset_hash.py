@@ -127,3 +127,31 @@ def test_dataset_hash_rejects_nonfinite_observation_values():
 
     with pytest.raises(ValueError):
         dataset_hash([series])
+
+
+def test_dataset_hash_changes_when_observation_provenance_changes():
+    import pytest
+
+    from mediqueue.training.datasets import dataset_hash
+
+    cases = [
+        ("source_id", "device-b"),
+        ("ingest_ts", datetime(2026, 1, 1, 0, 2, tzinfo=UTC)),
+        ("idempotency_key", "different-key"),
+    ]
+    for field, replacement in cases:
+        first = _series()
+        second = _series()
+        first.observations[0].update(
+            source_id="device-a",
+            ingest_ts=datetime(2026, 1, 1, tzinfo=UTC),
+            idempotency_key="original-key",
+        )
+        second.observations[0].update(
+            source_id="device-a",
+            ingest_ts=datetime(2026, 1, 1, tzinfo=UTC),
+            idempotency_key="original-key",
+        )
+        second.observations[0][field] = replacement
+
+        assert dataset_hash([first]) != dataset_hash([second]), field
