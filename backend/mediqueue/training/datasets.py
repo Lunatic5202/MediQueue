@@ -134,23 +134,27 @@ def generate_synthetic_corpus(
 
 
 def load_physionet2019(data_dir: str | Path, max_patients: int | None = None) -> list[PatientSeries]:
-    """Load PhysioNet/CinC 2019 training files (one CSV per patient).
+    """Load PhysioNet/CinC 2019 files (one pipe-separated .psv per patient).
 
-    Expected columns include: Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel.
-    Files may live in nested folders (e.g., training_setA). Requires the
-    operator to download the dataset under its license.
+    Also accepts comma-separated .csv exports. Expected columns include:
+    Hour, HR, O2Sat, Temp, SBP, DBP, SepsisLabel. Files may live in nested
+    folders (e.g., training_setA). Requires the operator to download the
+    dataset under its license.
     """
     root = Path(data_dir)
-    files = sorted(root.rglob("*.csv"))
+    # PhysioNet Challenge 2019 distributes per-patient pipe-separated .psv
+    # files. Keep .csv support for normalized/local exports, but parse each
+    # format with its actual delimiter.
+    files = sorted([*root.rglob("*.psv"), *root.rglob("*.csv")])
     if not files:
-        raise FileNotFoundError(f"no per-patient CSV files under {root}")
+        raise FileNotFoundError(f"no per-patient .psv or .csv files under {root}")
     if max_patients is not None:
         files = files[:max_patients]
 
     corpus: list[PatientSeries] = []
     for f in files:
         try:
-            df = pd.read_csv(f)
+            df = pd.read_csv(f, sep="|" if f.suffix.lower() == ".psv" else ",")
         except Exception:  # noqa: BLE001 - skip unreadable files
             continue
         cols = {c.lower(): c for c in df.columns}
