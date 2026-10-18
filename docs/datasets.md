@@ -86,6 +86,14 @@ python scripts/export_vitaldb.py --case-id 1 \\
 
 The required `--start-time` is a **synthetic UTC anchor** because VitalDB times are relative to case start, not the patient's real wall-clock time. Output is for offline replay/testing only; do not feed it into a live clinical queue as if these were current readings. The default tracks are `Solar8000/HR`, `Solar8000/PLETH_SPO2`, `Solar8000/NIBP_SBP`, `Solar8000/NIBP_DBP`, and `Solar8000/BT`; use the `--*-track` options to override them when a case uses different tracks. Missing samples are skipped, and BP is emitted only when both systolic and diastolic samples are present.
 
+Before using an export in any downstream workflow, run the offline validator:
+
+```bash
+python scripts/validate_observations.py vitaldb-case-1.ndjson
+```
+
+It applies MediQueue's existing unit, timestamp, and plausibility checks without making API calls or writing to the database. It reports line numbers and validation errors but deliberately does not print patient IDs. A non-zero exit status means the file contains invalid rows or no valid observations. This checks payload compatibility only; it does not validate the clinical usefulness of the dataset or the triage model.
+
 ## Feature-engineering parity
 
 `build_feature_matrix()` computes training samples with the **same
