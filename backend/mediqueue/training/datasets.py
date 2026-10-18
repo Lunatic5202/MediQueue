@@ -17,6 +17,7 @@ deterioration proxy are trained and reported separately.
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -275,18 +276,40 @@ def load_generic_csv(path: str | Path) -> list[PatientSeries]:
     return corpus
 
 
+def _canonical_json(value: Any) -> str:
+    """Serialize dataset values deterministically, including timestamps."""
+    def normalize(item: Any) -> Any:
+        if isinstance(item, datetime):
+            return item.isoformat()
+        if isinstance(item, dict):
+            return {str(key): normalize(val) for key, val in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [normalize(val) for val in item]
+        return item
+
+    return json.dumps(
+        normalize(value), sort_keys=True, separators=(",", ":"), default=str, allow_nan=False
+    )
+
+
 def dataset_hash(corpus: Iterable[PatientSeries], params: dict[str, Any] | None = None) -> str:
-    """Stable hash of a corpus (ids, sizes, label counts) + generation params."""
+    """Hash all patient observations, labels, and generation parameters."""
     h = hashlib.sha256()
-    if params:
-        h.update(repr(sorted(params.items())).encode("utf-8"))
-    n = 0
-    pos = 0
-    for s in corpus:
-        n += 1
-        pos += 1 if s.positive else 0
-        h.update(f"{s.patient_id}:{len(s.observations)}:{len(s.labels)}\n".encode())
-    h.update(f"n={n},pos={pos}".encode())
+    h.update(_canonical_json(params or {}).encode("utf-8"))
+    h.update(b"\\n")
+
+    # Sorting makes the fingerprint independent of corpus/row iteration order.
+    for series in sorted(corpus, key=lambda item: item.patient_id):
+        observations = sorted(_canonical_json(row) for row in series.observations)
+        labels = sorted((ts.isoformat(), int(label)) for ts, label in series.labels)
+        record = {
+            "patient_id": series.patient_id,
+            "positive": bool(series.positive),
+            "observations": observations,
+            "labels": labels,
+        }
+        h.update(_canonical_json(record).encode("utf-8"))
+        h.update(b"\\n")
     return h.hexdigest()
 
 
