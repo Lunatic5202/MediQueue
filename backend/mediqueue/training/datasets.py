@@ -17,6 +17,7 @@ deterioration proxy are trained and reported separately.
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -280,17 +281,50 @@ def load_generic_csv(path: str | Path) -> list[PatientSeries]:
 
 
 def dataset_hash(corpus: Iterable[PatientSeries], params: dict[str, Any] | None = None) -> str:
-    """Stable hash of a corpus (ids, sizes, label counts) + generation params."""
+    """Fingerprint dataset content and generation parameters deterministically."""
     h = hashlib.sha256()
-    if params:
-        h.update(repr(sorted(params.items())).encode("utf-8"))
-    n = 0
-    pos = 0
-    for s in corpus:
-        n += 1
-        pos += 1 if s.positive else 0
-        h.update(f"{s.patient_id}:{len(s.observations)}:{len(s.labels)}\n".encode())
-    h.update(f"n={n},pos={pos}".encode())
+    payload_params = json.dumps(params or {}, sort_keys=True, separators=(",", ":"), default=str)
+    h.update(payload_params.encode("utf-8"))
+
+    # Sort patient series and their records so equivalent corpora hash identically
+    # regardless of input iteration order.
+    for series in sorted(corpus, key=lambda item: item.patient_id):
+        patient_payload = {
+            "patient_id": series.patient_id,
+            "positive": bool(series.positive),
+            "observations": [
+                {
+                    "patient_id": str(row.get("patient_id", series.patient_id)),
+                    "vital_type": str(row.get("vital_type", "")),
+                    "value": None if row.get("value") is None else repr(float(row["value"])),
+                    "value_diastolic": (
+                        None
+                        if row.get("value_diastolic") is None
+                        else repr(float(row["value_diastolic"]))
+                    ),
+                    "unit": row.get("unit"),
+                    "device_ts": row["device_ts"].isoformat()
+                    if hasattr(row.get("device_ts"), "isoformat")
+                    else str(row.get("device_ts")),
+                    "source_id": row.get("source_id"),
+                }
+                for row in sorted(
+                    series.observations,
+                    key=lambda row: (
+                        str(row.get("device_ts")),
+                        str(row.get("vital_type", "")),
+                        str(row.get("idempotency_key", "")),
+                    ),
+                )
+            ],
+            "labels": [
+                [ts.isoformat() if hasattr(ts, "isoformat") else str(ts), int(label)]
+                for ts, label in sorted(series.labels, key=lambda item: (str(item[0]), int(item[1])))
+            ],
+        }
+        encoded = json.dumps(patient_payload, sort_keys=True, separators=(",", ":"), default=str)
+        h.update(encoded.encode("utf-8"))
+        h.update(b"\n")
     return h.hexdigest()
 
 
