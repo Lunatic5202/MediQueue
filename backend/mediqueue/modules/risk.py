@@ -17,7 +17,7 @@ from typing import Any
 from sqlalchemy import select
 
 from ..config import get_settings
-from ..db import alerts, to_json, utcnow
+from ..db import alerts, to_json
 
 NORMAL_RANGES: dict[str, tuple[float, float]] = {
     "heart_rate": (60.0, 100.0),

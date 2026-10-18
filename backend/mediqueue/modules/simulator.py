@@ -12,11 +12,10 @@ import asyncio
 import logging
 import random
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
-from ..config import get_settings
 from ..db import get_engine, utcnow
 from ..pipeline import PipelineError, process_observation
 
@@ -86,7 +85,7 @@ def _make_patient(scenario: str, now: datetime) -> SimPatient:
 
 def _advance(p: SimPatient, minutes_elapsed: float, rng: random.Random) -> list[dict[str, Any]]:
     """Produce the four vital observations for the current tick."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     noise = lambda x, s: max(0.0, x + rng.gauss(0, s))  # noqa: E731
 
     hr, spo2, sbp, temp = p.hr, p.spo2, p.sbp, p.temp
@@ -163,10 +162,9 @@ def stop_replay() -> ReplayState:
 async def _run(
     n_patients: int, rate_per_min: float, scenario: str, duration_seconds: float | None
 ) -> None:
-    settings = get_settings()
     rng = random.Random()
     scenarios = ["stable", "sepsis_like", "respiratory_decline"]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     pool: list[SimPatient] = []
     for i in range(n_patients):
         sc = scenario if scenario != "mixed" else scenarios[i % len(scenarios)]

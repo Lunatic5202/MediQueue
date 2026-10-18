@@ -8,7 +8,7 @@ normalized to the canonical unit for each vital type.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 CANONICAL_UNITS = {
@@ -109,14 +109,14 @@ def _parse_timestamp(raw: Any, field_name: str) -> datetime:
     else:
         raise ValidationError("invalid_timestamp", f"{field_name} has unsupported type")
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
-    return ts.astimezone(timezone.utc)
+        ts = ts.replace(tzinfo=UTC)
+    return ts.astimezone(UTC)
 
 
 def compute_idempotency_key(
     patient_id: str, vital_type: str, device_ts: datetime, source_id: str
 ) -> str:
-    ts = device_ts.astimezone(timezone.utc).isoformat()
+    ts = device_ts.astimezone(UTC).isoformat()
     return f"{patient_id}|{vital_type}|{ts}|{source_id}"
 
 
@@ -148,7 +148,7 @@ def validate_and_normalize(payload: dict[str, Any], now: datetime | None = None)
     Raises ValidationError on any failure. Never silently corrects ambiguous
     units or out-of-range measurements.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
 
     for required in ("patient_id", "vital_type", "value", "unit", "device_timestamp"):
         if payload.get(required) is None:

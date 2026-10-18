@@ -216,7 +216,8 @@ def compute_features(rows: list[dict[str, Any]], as_of: datetime) -> FeatureResu
         values = [p[1] for p in asc]
         latest_t, latest_v = desc[0]
         features[f"{vital}__latest"] = latest_v
-        features[f"{vital}__minutes_since_last"] = round(as_of.timestamp() / 60.0 - latest_t, 4)
+        # points are minutes relative to as_of (<= 0), so age is simply -latest_t
+        features[f"{vital}__minutes_since_last"] = round(max(0.0, -latest_t), 4)
         features[f"{vital}__mean"] = _safe_mean(values)
         features[f"{vital}__std"] = _safe_std(values)
         features[f"{vital}__min"] = min(values)

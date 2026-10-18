@@ -19,7 +19,7 @@ import joblib
 import numpy as np
 
 from ..config import get_settings
-from .features import feature_names, to_model_vector
+from .features import feature_names
 
 
 class InferenceError(Exception):
@@ -37,6 +37,7 @@ class ModelArtifact:
     created_at: str
     predictor: Any
     feature_order: list[str]
+    calibrator: Any = None  # optional isotonic map raw score -> calibrated probability
 
 
 @dataclass
@@ -135,6 +136,9 @@ class InferenceEngine:
         else:
             raise InferenceError(f"unknown model kind {kind!r}")
 
+        cal_path = model_dir / "calibrator.joblib"
+        calibrator = joblib.load(cal_path) if cal_path.exists() else None
+
         return ModelArtifact(
             version_id=meta["id"],
             kind=kind,
@@ -145,6 +149,7 @@ class InferenceEngine:
             created_at=meta.get("created_at", ""),
             predictor=predictor,
             feature_order=meta.get("feature_order", feature_names()),
+            calibrator=calibrator,
         )
 
     def predict(self, features: dict[str, float | None]) -> Prediction:
@@ -164,6 +169,8 @@ class InferenceEngine:
                     score = float(artifact.predictor.predict(arr)[0])
         except Exception as exc:  # noqa: BLE001
             raise InferenceError(f"prediction failed: {exc}") from exc
+        if artifact.calibrator is not None:
+            score = float(artifact.calibrator.predict([score])[0])
         latency_ms = (time.perf_counter() - start) * 1000.0
         score = min(1.0, max(0.0, score))
         return Prediction(risk_score=score, model_version_id=artifact.version_id, latency_ms=latency_ms)
