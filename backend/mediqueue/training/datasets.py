@@ -17,6 +17,7 @@ deterioration proxy are trained and reported separately.
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -286,7 +287,7 @@ def _canonical_json(value: Any) -> str:
             return [normalize(val) for val in item]
         return item
 
-    return __import__("json").dumps(
+    return json.dumps(
         normalize(value), sort_keys=True, separators=(",", ":"), default=str, allow_nan=False
     )
 
