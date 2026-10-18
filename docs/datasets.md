@@ -75,8 +75,16 @@ licenses.
 The offline `scripts/export_observations.py` utility accepts a **normalized
 long-format CSV** and emits NDJSON payloads. It does not download or parse
 VitalDB's native tracks, call the MediQueue API, or write to the database.
-A source-specific adapter should only map explicitly selected numeric tracks
-to the four supported vital types and should leave clinical scoring untouched.
+Use the optional `scripts/export_vitaldb.py` adapter for a single case. It maps explicitly selected numeric tracks
+to the four supported vital types and leaves clinical scoring untouched. Install its optional dependency with `python -m pip install vitaldb`, then run for example:
+
+```bash
+python scripts/export_vitaldb.py --case-id 1 \\
+  --start-time 2024-01-01T00:00:00Z --interval 60 \\
+  --output vitaldb-case-1.ndjson
+```
+
+The required `--start-time` is a **synthetic UTC anchor** because VitalDB times are relative to case start, not the patient's real wall-clock time. Output is for offline replay/testing only; do not feed it into a live clinical queue as if these were current readings. The default tracks are `Solar8000/HR`, `Solar8000/PLETH_SPO2`, `Solar8000/NIBP_SBP`, `Solar8000/NIBP_DBP`, and `Solar8000/BT`; use the `--*-track` options to override them when a case uses different tracks. Missing samples are skipped, and BP is emitted only when both systolic and diastolic samples are present.
 
 ## Feature-engineering parity
 
