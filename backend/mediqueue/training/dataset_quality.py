@@ -113,7 +113,9 @@ def audit_generic_csv(path: str | Path) -> dict[str, Any]:
             "duplicate patient_id/vital_type/device_ts keys found; review before training"
         )
 
-    if "label" in df.columns:
+    if "label" not in df.columns:
+        report["warnings"].append("label column is missing; supervised training requires labels")
+    else:
         labels = pd.to_numeric(df["label"], errors="coerce")
         present = df["label"].notna()
         valid_binary = labels.isin([0, 1])
