@@ -1,4 +1,4 @@
-""""Content-addressed fingerprint tests for offline training datasets."""
+"""Content-addressed fingerprint tests for offline training datasets."""
 
 from __future__ import annotations
 
@@ -77,4 +77,3 @@ def test_dataset_hash_changes_when_patient_identity_changes():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series(patient_id="p1")]) != dataset_hash([_series(patient_id="p2")])
-"
