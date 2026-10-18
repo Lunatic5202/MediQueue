@@ -4,6 +4,9 @@ import {
   Box,
   Button,
   Card,
+  Chip,
+  Divider,
+  Grid,
   LinearProgress,
   MenuItem,
   Stack,
@@ -14,7 +17,12 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import { api } from "../api";
 
-const PROFILES = ["mixed", "stable", "sepsis_like", "respiratory_decline"];
+const PROFILES = [
+  { value: "mixed", label: "Mixed signals", description: "A mix of stable and changing observations." },
+  { value: "stable", label: "Stable", description: "Mostly steady observations for baseline testing." },
+  { value: "sepsis_like", label: "Sepsis-like pattern", description: "Synthetic deterioration-style signal pattern." },
+  { value: "respiratory_decline", label: "Respiratory decline", description: "Synthetic respiratory deterioration-style pattern." },
+];
 
 export default function ReplayPage({ lastEvent, onAction }) {
   const [status, setStatus] = useState(null);
@@ -66,75 +74,131 @@ export default function ReplayPage({ lastEvent, onAction }) {
   }
 
   const running = status?.running ?? false;
+  const selectedProfile = PROFILES.find((p) => p.value === scenario);
 
   return (
     <Stack spacing={2.5}>
-      <Typography variant="h5">Replay simulator</Typography>
+      <Box>
+        <Typography variant="h5" sx={{ fontWeight: 750 }}>Replay simulator</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Exercise the ingestion and alert pipeline with controlled synthetic patient streams.
+        </Typography>
+      </Box>
+
       <Alert severity="info">
-        Synthetic patient timelines replayed through the SAME ingestion pipeline as live HL7-style feeds:
-        validation, history window, feature computation, model inference, alerting, recommendations. Replay
-        results demonstrate system behavior — they are not clinical evidence.
+        Replay events pass through the same ingestion pipeline as live HL7-style feeds: validation, history
+        window, feature computation, model inference, alerting and recommendations. These synthetic scenarios
+        demonstrate software behavior, not clinical evidence.
       </Alert>
+
       {error && <Alert severity="error">{error}</Alert>}
-      <Card sx={{ p: 3 }}>
-        <Stack spacing={2.5} maxWidth={520}>
+
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ p: 2, height: "100%" }}>
+            <Typography variant="body2" color="text.secondary">Simulator status</Typography>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+              <Box sx={{
+                width: 9, height: 9, borderRadius: "50%",
+                bgcolor: running ? "success.main" : "text.disabled",
+              }} />
+              <Typography variant="h6">{running ? "Running" : status ? "Stopped" : "Checking…"}</Typography>
+            </Stack>
+            <Typography variant="caption" color="text.secondary">
+              {running ? "Synthetic events are being emitted." : "No replay currently running."}
+            </Typography>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ p: 2, height: "100%" }}>
+            <Typography variant="body2" color="text.secondary">Events emitted</Typography>
+            <Typography variant="h4" sx={{ mt: 0.5, fontWeight: 750, fontVariantNumeric: "tabular-nums" }}>
+              {status?.events_emitted ?? "—"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">Reported by the replay service</Typography>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card sx={{ p: 2, height: "100%" }}>
+            <Typography variant="body2" color="text.secondary">Active configuration</Typography>
+            <Typography variant="h6" sx={{ mt: 0.5 }}>
+              {status?.n_patients ?? patients} patients
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {status?.rate_per_min ?? rate} events per minute
+            </Typography>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Card sx={{ p: { xs: 2, sm: 3 } }}>
+        <Stack spacing={2.5}>
           <Box>
-            <Typography variant="h6">{running ? "Replay running" : "Replay stopped"}</Typography>
-            {status && (
-              <Typography variant="body2" color="text.secondary">
-                {status.events_emitted ?? 0} events emitted
-                {status.n_patients ? ` · ${status.n_patients} patients` : ""}
-                {status.rate_per_min ? ` · ${status.rate_per_min}/min` : ""}
-                {status.started_at ? ` · started ${new Date(status.started_at).toLocaleTimeString()}` : ""}
-              </Typography>
-            )}
+            <Typography variant="h6">Configure replay</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Choose a scenario and stream intensity. Settings are locked while replay is running.
+            </Typography>
           </Box>
+          <Divider />
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField
+                select
+                label="Synthetic scenario"
+                value={scenario}
+                onChange={(e) => setScenario(e.target.value)}
+                disabled={running || busy}
+                fullWidth
+              >
+                {PROFILES.map((p) => (
+                  <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+                ))}
+              </TextField>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                {selectedProfile?.description}
+              </Typography>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                label="Patients"
+                type="number"
+                value={patients}
+                onChange={(e) => setPatients(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                disabled={running || busy}
+                inputProps={{ min: 1, max: 50, step: 1 }}
+                fullWidth
+                helperText="Between 1 and 50"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <TextField
+                label="Events per minute"
+                type="number"
+                value={rate}
+                onChange={(e) => setRate(Math.max(1, Math.min(120, Number(e.target.value) || 1)))}
+                disabled={running || busy}
+                inputProps={{ min: 1, max: 120, step: 1 }}
+                fullWidth
+                helperText="Between 1 and 120"
+              />
+            </Grid>
+          </Grid>
           {running && <LinearProgress />}
-          <Stack direction="row" spacing={2}>
-            <TextField
-              select
-              label="Scenario"
-              size="small"
-              value={scenario}
-              onChange={(e) => setScenario(e.target.value)}
-              disabled={running}
-              fullWidth
-            >
-              {PROFILES.map((p) => (
-                <MenuItem key={p} value={p}>
-                  {p}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Patients"
-              size="small"
-              type="number"
-              value={patients}
-              onChange={(e) => setPatients(Number(e.target.value))}
-              disabled={running}
-              inputProps={{ min: 1, max: 50 }}
-              fullWidth
-            />
-            <TextField
-              label="Events / min"
-              size="small"
-              type="number"
-              value={rate}
-              onChange={(e) => setRate(Number(e.target.value))}
-              disabled={running}
-              inputProps={{ min: 1, max: 120 }}
-              fullWidth
-            />
-          </Stack>
-          <Stack direction="row" spacing={1.5}>
+          {status?.started_at && (
+            <Typography variant="caption" color="text.secondary">
+              Started {new Date(status.started_at).toLocaleString()}
+            </Typography>
+          )}
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
             <Button
               variant="contained"
               startIcon={<PlayArrowIcon />}
               onClick={start}
               disabled={busy || running}
+              fullWidth
+              sx={{ maxWidth: { sm: 190 } }}
             >
-              Start replay
+              {busy && !running ? "Starting…" : "Start replay"}
             </Button>
             <Button
               variant="outlined"
@@ -142,9 +206,19 @@ export default function ReplayPage({ lastEvent, onAction }) {
               startIcon={<StopIcon />}
               onClick={stop}
               disabled={busy || !running}
+              fullWidth
+              sx={{ maxWidth: { sm: 170 } }}
             >
-              Stop replay
+              {busy && running ? "Stopping…" : "Stop replay"}
             </Button>
+            {status && (
+              <Chip
+                variant="outlined"
+                label={running ? "Stream active" : "Ready to run"}
+                color={running ? "success" : "default"}
+                sx={{ alignSelf: { xs: "flex-start", sm: "center" }, ml: { sm: "auto !important" } }}
+              />
+            )}
           </Stack>
         </Stack>
       </Card>
