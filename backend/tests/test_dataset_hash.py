@@ -1,4 +1,4 @@
-"""Content-addressed fingerprint tests for offline training datasets."""
+""""Content-addressed fingerprint tests for offline training datasets."""
 
 from __future__ import annotations
 
@@ -60,3 +60,21 @@ def test_dataset_hash_includes_generation_parameters():
     from mediqueue.training.datasets import dataset_hash
 
     assert dataset_hash([_series()], {"seed": 1}) != dataset_hash([_series()], {"seed": 2})
+
+
+def test_dataset_hash_changes_when_label_class_changes():
+    from mediqueue.training.datasets import dataset_hash
+
+    positive = _series()
+    negative = _series()
+    negative.labels = [(timestamp, 0) for timestamp, _ in negative.labels]
+    negative.positive = False
+
+    assert dataset_hash([positive]) != dataset_hash([negative])
+
+
+def test_dataset_hash_changes_when_patient_identity_changes():
+    from mediqueue.training.datasets import dataset_hash
+
+    assert dataset_hash([_series(patient_id="p1")]) != dataset_hash([_series(patient_id="p2")])
+"
