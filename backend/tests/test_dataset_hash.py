@@ -188,3 +188,11 @@ def test_dataset_hash_is_stable_under_generation_parameter_key_order():
     reordered_params = {"options": {"stride": 5, "window": 10}, "seed": 42}
 
     assert dataset_hash([_series()], first_params) == dataset_hash([_series()], reordered_params)
+
+
+def test_dataset_hash_treats_missing_and_empty_generation_parameters_equally():
+    from mediqueue.training.datasets import dataset_hash
+
+    series = _series()
+
+    assert dataset_hash([series]) == dataset_hash([series], {})
