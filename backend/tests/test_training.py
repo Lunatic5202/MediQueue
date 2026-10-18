@@ -155,3 +155,35 @@ def test_evaluate_rejects_empty_selected_split(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="evaluation split 'test' contains no samples"):
         evaluate.evaluate_artifact(artifact, dataset="synthetic", split="test")
+
+
+
+@pytest.mark.parametrize("empty_split", ["train", "validation", "test"])
+def test_train_rejects_empty_patient_split(tmp_path, monkeypatch, empty_split):
+    from mediqueue.training import train
+    from mediqueue.training.datasets import PatientSeries
+
+    corpus = [
+        PatientSeries("p1", observations=[], labels=[], positive=True),
+        PatientSeries("p2", observations=[], labels=[], positive=False),
+    ]
+    monkeypatch.setattr(train, "generate_synthetic_corpus", lambda **kwargs: corpus)
+    monkeypatch.setattr(
+        train, "build_feature_matrix",
+        lambda corpus, task: pd.DataFrame({
+            "patient_id": ["p1", "p2"], "label": [1, 0], "feature": [1.0, 0.0]
+        }),
+    )
+    monkeypatch.setattr(train, "feature_names", lambda: ["feature"])
+    split_ids = {
+        "train": ([], ["p1"], ["p2"]),
+        "validation": (["p1"], [], ["p2"]),
+        "test": (["p1"], ["p2"], []),
+    }
+    monkeypatch.setattr(train, "patient_level_split", lambda corpus, seed: split_ids[empty_split])
+
+    with pytest.raises(ValueError, match=f"{empty_split} split contains no samples"):
+        train.train_model(
+            dataset="synthetic", n_patients=2, kind="logreg",
+            out_dir=str(tmp_path), register=False,
+        )
