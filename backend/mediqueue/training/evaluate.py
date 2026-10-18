@@ -81,6 +81,11 @@ def evaluate_artifact(
     meta = load_artifact_metadata(art)
     task = meta["task"]
     threshold = float(meta.get("threshold", 0.5))
+    if task == "sepsis" and dataset == "synthetic":
+        raise ValueError(
+            "the synthetic dataset labels general deterioration, not sepsis; "
+            "evaluate sepsis artifacts with dataset='physionet'"
+        )
 
     if dataset == "synthetic":
         corpus = generate_synthetic_corpus(n_patients=n_patients, seed=seed)
