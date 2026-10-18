@@ -7,6 +7,7 @@ the MEDIQUEUE_ prefix.
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass, field
 
@@ -153,7 +154,34 @@ class Settings:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     def validate_for_startup(self) -> None:
-        """Refuse unsafe configuration outside development."""
+        """Validate experimental thresholds in every environment and production secrets."""
+        probability_thresholds = {
+            "MEDIQUEUE_BAND_WATCH": self.band_watch,
+            "MEDIQUEUE_BAND_ELEVATED": self.band_elevated,
+            "MEDIQUEUE_BAND_HIGH": self.band_high,
+            "MEDIQUEUE_ALERT_THRESHOLD": self.alert_absolute_threshold,
+        }
+        for name, value in probability_thresholds.items():
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                raise RuntimeError(f"{name} must be a finite probability between 0 and 1")
+
+        if not self.band_watch < self.band_elevated < self.band_high:
+            raise RuntimeError(
+                "Risk-band thresholds must be strictly increasing: "
+                "MEDIQUEUE_BAND_WATCH < MEDIQUEUE_BAND_ELEVATED < MEDIQUEUE_BAND_HIGH"
+            )
+
+        if (
+            not math.isfinite(self.material_worsening_delta)
+            or not 0.0 < self.material_worsening_delta <= 1.0
+        ):
+            raise RuntimeError(
+                "MEDIQUEUE_MATERIAL_WORSENING_DELTA must be greater than 0 and at most 1"
+            )
+
+        if not math.isfinite(self.alert_cooldown_minutes) or self.alert_cooldown_minutes < 0.0:
+            raise RuntimeError("MEDIQUEUE_ALERT_COOLDOWN_MINUTES must be finite and non-negative")
+
         if not self.is_production:
             return
         if self.secret_key == DEV_SECRET or len(self.secret_key) < 32:
