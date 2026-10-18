@@ -130,6 +130,11 @@ def train_model(
     settings = get_settings()
     if task not in ("deterioration", "sepsis"):
         raise ValueError("task must be 'deterioration' or 'sepsis'")
+    if task == "sepsis" and dataset == "synthetic":
+        raise ValueError(
+            "the synthetic dataset labels general deterioration, not sepsis; "
+            "use dataset='physionet' for the sepsis task"
+        )
 
     gen_params: dict[str, Any] = {"dataset": dataset, "seed": seed, "n_patients": n_patients, "task": task}
     if dataset == "synthetic":

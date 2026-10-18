@@ -110,3 +110,44 @@ def test_trained_artifact_is_calibrated(tmp_path):
 
     r = train_model(n_patients=60, out_dir=str(tmp_path), register=False)
     assert (r.artifact_dir / "calibrator.joblib").exists()
+
+
+
+def test_dataset_hash_changes_when_observation_changes():
+    from copy import deepcopy
+    from mediqueue.training.datasets import dataset_hash, generate_synthetic_corpus
+
+    corpus = generate_synthetic_corpus(n_patients=2, seed=17)
+    original = dataset_hash(corpus, {"dataset": "synthetic"})
+    changed = deepcopy(corpus)
+    changed[0].observations[0]["value"] += 0.25
+
+    assert dataset_hash(corpus, {"dataset": "synthetic"}) == original
+    assert dataset_hash(changed, {"dataset": "synthetic"}) != original
+
+
+def test_dataset_hash_changes_when_label_changes():
+    from copy import deepcopy
+    from mediqueue.training.datasets import dataset_hash, generate_synthetic_corpus
+
+    corpus = generate_synthetic_corpus(n_patients=2, seed=17)
+    changed = deepcopy(corpus)
+    ts, label = changed[0].labels[0]
+    changed[0].labels[0] = (ts, 1 - label)
+
+    assert dataset_hash(changed) != dataset_hash(corpus)
+
+
+def test_dataset_hash_is_independent_of_corpus_order():
+    from mediqueue.training.datasets import dataset_hash, generate_synthetic_corpus
+
+    corpus = generate_synthetic_corpus(n_patients=4, seed=21)
+    assert dataset_hash(corpus) == dataset_hash(list(reversed(corpus)))
+
+
+def test_synthetic_data_cannot_train_sepsis_task():
+    import pytest
+    from mediqueue.training.train import train_model
+
+    with pytest.raises(ValueError, match="not sepsis"):
+        train_model(task="sepsis", dataset="synthetic", n_patients=20, register=False)
