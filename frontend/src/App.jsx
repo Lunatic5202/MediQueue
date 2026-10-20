@@ -1,7 +1,9 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import Shell from "./components/Shell";
+import LandingPage from "./pages/LandingPage";
+import MedLanding from "./pages/MedLanding";
 import LoginPage from "./pages/LoginPage";
 import QueuePage from "./pages/QueuePage";
 import PatientPage from "./pages/PatientPage";
@@ -36,15 +38,25 @@ function LiveShell() {
 
 export default function App() {
   const { user, ready } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (ready && !user) navigate("/login", { replace: true });
-  }, [ready, user, navigate]);
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+      <Route
+        path="/"
+        element={
+          !ready ? (
+            <Box sx={{ p: 4 }}>
+              <LinearProgress />
+            </Box>
+          ) : user ? (
+            <Navigate to="/queue" replace />
+          ) : (
+            <MedLanding />
+          )
+        }
+      />
+      <Route path="/old" element={<LandingPage />} />
+      <Route path="/login" element={user ? <Navigate to="/queue" replace /> : <LoginPage />} />
       <Route
         element={
           <Protected>
@@ -52,7 +64,7 @@ export default function App() {
           </Protected>
         }
       >
-        <Route index element={<QueuePageWithLive />} />
+        <Route path="/queue" element={<QueuePageWithLive />} />
         <Route path="/patients/:patientId" element={<PatientWithLive />} />
         <Route path="/alerts" element={<AlertsWithLive />} />
         <Route path="/audit" element={<AuditPage />} />

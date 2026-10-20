@@ -1,26 +1,40 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import {
   Alert,
   Box,
   Button,
   Card,
-  IconButton,
-  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
-import LockIcon from "@mui/icons-material/Lock";
-import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
 import { useAuth } from "../auth";
+
+const ACCENT = "#5E0ED7";
 
 const DEMO = [
   ["clinician1", "clinician1-pass", "Clinician"],
   ["admin", "admin-pass", "Administrator"],
   ["auditor1", "auditor-pass", "Auditor"],
 ];
+
+function LogoMark({ size = 44 }) {
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        border: `2px solid ${ACCENT}`,
+        display: "grid",
+        placeItems: "center",
+      }}
+    >
+      <Box sx={{ width: size * 0.28, height: size * 0.28, borderRadius: "50%", bgcolor: ACCENT }} />
+    </Box>
+  );
+}
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -36,7 +50,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await login(username.trim(), password);
-      navigate("/");
+      navigate("/queue");
     } catch (err) {
       setError(err.message || "Sign-in failed");
     } finally {
@@ -50,91 +64,137 @@ export default function LoginPage() {
         minHeight: "100vh",
         display: "grid",
         placeItems: "center",
-        background: "linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#312e81 100%)",
+        background: "#060607",
         p: 2,
       }}
     >
-      <Card sx={{ width: 420, p: 4, borderRadius: 4 }}>
-        <Stack alignItems="center" spacing={1} sx={{ mb: 3 }}>
+      <Stack alignItems="center" spacing={2.5}>
+        <Button
+          component={RouterLink}
+          to="/"
+          variant="text"
+          sx={{
+            color: "rgba(255,255,255,0.6)",
+            fontWeight: 600,
+            fontSize: 12,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            "&:hover": { color: "rgba(255,255,255,0.9)", bgcolor: "transparent" },
+          }}
+        >
+          ← Back to home
+        </Button>
+        <Card
+          sx={{
+            width: 420,
+            p: 4,
+            borderRadius: 0,
+            border: "1px solid rgba(0,0,0,0.1)",
+            boxShadow: "0 24px 60px rgba(94,14,215,0.18)",
+          }}
+        >
+          <Stack alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+            <LogoMark />
+            <Typography
+              sx={{
+                fontWeight: 700,
+                fontSize: 18,
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                color: "#000",
+              }}
+            >
+              MediQueue
+            </Typography>
+            <Typography
+              sx={{
+                color: "rgba(0,0,0,0.5)",
+                fontSize: 12.5,
+                textAlign: "center",
+                lineHeight: 1.6,
+                letterSpacing: 0,
+              }}
+            >
+              Emergency department deterioration monitoring.
+              <br />
+              Decision support only — clinicians decide.
+            </Typography>
+          </Stack>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 0 }}>
+              {error}
+            </Alert>
+          )}
+          <form onSubmit={submit}>
+            <Stack spacing={2}>
+              <TextField
+                label="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={busy}
+                fullWidth
+                sx={{
+                  borderRadius: 0,
+                  py: 1.25,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {busy ? "Signing in…" : "Sign in"}
+              </Button>
+            </Stack>
+          </form>
           <Box
             sx={{
-              width: 56,
-              height: 56,
-              borderRadius: 3,
-              background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-              display: "grid",
-              placeItems: "center",
-              color: "white",
+              mt: 3,
+              p: 1.75,
+              bgcolor: "#F4EFFC",
+              borderRadius: 0,
+              border: "1px solid rgba(94,14,215,0.12)",
             }}
           >
-            <HealthAndSafetyIcon sx={{ fontSize: 30 }} />
+            <Typography
+              variant="caption"
+              sx={{
+                display: "block",
+                mb: 1,
+                color: "rgba(0,0,0,0.45)",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+              }}
+            >
+              Demo accounts
+            </Typography>
+            {DEMO.map(([u, p, role]) => (
+              <Stack key={u} direction="row" justifyContent="space-between" sx={{ fontSize: 12.5 }}>
+                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "rgba(0,0,0,0.7)" }}>
+                  {u} / {p}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "rgba(0,0,0,0.45)" }}>
+                  {role}
+                </Typography>
+              </Stack>
+            ))}
           </Box>
-          <Typography variant="h5">MediQueue</Typography>
-          <Typography color="text.secondary" textAlign="center">
-            Emergency department deterioration monitoring.
-            <br />
-            Decision support only — clinicians decide.
-          </Typography>
-        </Stack>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        <form onSubmit={submit}>
-          <Stack spacing={2}>
-            <TextField
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <Button type="submit" variant="contained" size="large" disabled={busy} fullWidth>
-              {busy ? "Signing in…" : "Sign in"}
-            </Button>
-          </Stack>
-        </form>
-        <Box sx={{ mt: 3, p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
-          <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-            Demo accounts
-          </Typography>
-          {DEMO.map(([u, p, role]) => (
-            <Stack key={u} direction="row" justifyContent="space-between" sx={{ fontSize: 12.5 }}>
-              <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                {u} / {p}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {role}
-              </Typography>
-            </Stack>
-          ))}
-        </Box>
-      </Card>
+        </Card>
+      </Stack>
     </Box>
   );
 }

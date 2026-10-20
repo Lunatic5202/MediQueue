@@ -40,8 +40,8 @@ import { riskColors } from "../theme";
 
 const VITAL_META = {
   heart_rate: { label: "Heart rate", unit: "bpm", color: "#dc2626", domain: [40, 180] },
-  spo2: { label: "SpO₂", unit: "%", color: "#2563eb", domain: [80, 100] },
-  blood_pressure: { label: "Systolic BP", unit: "mmHg", color: "#7c3aed", domain: [60, 200] },
+  spo2: { label: "SpO₂", unit: "%", color: "#5E0ED7", domain: [80, 100] },
+  blood_pressure: { label: "Systolic BP", unit: "mmHg", color: "#9333EA", domain: [60, 200] },
   temperature: { label: "Temperature", unit: "°C", color: "#d97706", domain: [34, 42] },
 };
 
@@ -109,7 +109,7 @@ function RiskChart({ assessments }) {
               labelFormatter={(t) => fmt(t)}
               formatter={(v, _n, p) => [`${v.toFixed(0)}${p.payload.stale ? " (stale)" : ""}`, "risk"]}
             />
-            <Line type="stepAfter" dataKey="s" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} />
+            <Line type="stepAfter" dataKey="s" stroke="#5E0ED7" strokeWidth={2} dot={{ r: 2 }} />
           </LineChart>
         </ResponsiveContainer>
       )}
@@ -177,7 +177,7 @@ export default function PatientPage({ lastEvent, onAction }) {
   if (!patient && !error) return <LinearProgress />;
   if (!patient)
     return (
-      <Alert severity="error" action={<Link to="/">Back to queue</Link>}>
+      <Alert severity="error" action={<Link to="/queue">Back to queue</Link>}>
         {error}
       </Alert>
     );
@@ -195,7 +195,7 @@ export default function PatientPage({ lastEvent, onAction }) {
   return (
     <Stack spacing={2.5}>
       <Stack direction="row" spacing={2} alignItems="center">
-        <Button component={RouterLink} to="/" startIcon={<ArrowBackIcon />} variant="outlined" size="small">
+        <Button component={RouterLink} to="/queue" startIcon={<ArrowBackIcon />} variant="outlined" size="small">
           Queue
         </Button>
         <Box sx={{ flex: 1 }}>
@@ -309,8 +309,8 @@ export default function PatientPage({ lastEvent, onAction }) {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    border: "1px solid #2563eb40",
-                    background: "#2563eb0a",
+                    border: "1px solid #5E0ED740",
+                    background: "#5E0ED70a",
                   }}
                 >
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>

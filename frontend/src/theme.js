@@ -1,6 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 
-const primary = { main: "#2563eb", dark: "#1d4ed8", light: "#60a5fa" };
+const primary = { main: "#5E0ED7", dark: "#4A0BB0", light: "#8B4FE8" };
 const success = { main: "#047857" };
 const warning = { main: "#b45309" };
 const error = { main: "#b91c1c" };
@@ -50,11 +50,38 @@ export const theme = createTheme({
         "html, body, #root": { minHeight: "100%", width: "100%" },
         body: {
           backgroundColor: "#f5f7fb",
-          backgroundImage: "radial-gradient(ellipse at 12% 0%, rgba(37,99,235,0.045), transparent 38%)",
+          backgroundImage: "radial-gradient(ellipse at 12% 0%, rgba(94,14,215,0.045), transparent 38%)",
           WebkitFontSmoothing: "antialiased",
         },
-        "::selection": { background: "rgba(37,99,235,0.18)" },
-        "*:focus-visible": { outline: "3px solid rgba(37,99,235,0.45)", outlineOffset: 2 },
+        "::selection": { background: "rgba(94,14,215,0.18)" },
+        "*:focus-visible": { outline: "3px solid rgba(94,14,215,0.45)", outlineOffset: 2 },
+        "@keyframes mq-fade-up": {
+          from: { opacity: 0, transform: "translateY(22px)" },
+          to: { opacity: 1, transform: "translateY(0)" },
+        },
+        "@keyframes mq-fade-in": {
+          from: { opacity: 0 },
+          to: { opacity: 1 },
+        },
+        "@keyframes mq-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        ".mq-rise": { animation: "mq-fade-up 700ms cubic-bezier(0.22,1,0.36,1) both" },
+        ".mq-card-in": {
+          animation: "mq-fade-up 600ms cubic-bezier(0.22,1,0.36,1) both",
+          "animation-delay": "inherit",
+        },
+        ".mq-row-in": {
+          animation: "mq-fade-up 480ms cubic-bezier(0.22,1,0.36,1) both",
+        },
+        ".mq-float": {
+          animation: "mq-float 7s ease-in-out infinite",
+        },
+        ".mq-blur": {
+          backdropFilter: "blur(14px)",
+          backgroundColor: "rgba(255,255,255,0.82)",
+        },
       },
     },
     MuiCard: {
@@ -70,7 +97,7 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: { borderRadius: 10, boxShadow: "none", minHeight: 38 },
-        contained: { "&:hover": { boxShadow: "0 5px 14px rgba(37,99,235,0.18)" } },
+        contained: { "&:hover": { boxShadow: "0 5px 14px rgba(94,14,215,0.18)" } },
       },
     },
     MuiIconButton: {
@@ -86,7 +113,7 @@ export const theme = createTheme({
         head: {
           fontWeight: 750,
           color: "#596579",
-          backgroundColor: "#f8faff",
+          backgroundColor: "#faf7ff",
           fontSize: "0.72rem",
           letterSpacing: "0.045em",
           textTransform: "uppercase",

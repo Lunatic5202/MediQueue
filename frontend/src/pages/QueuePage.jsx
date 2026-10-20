@@ -99,9 +99,9 @@ export default function QueuePage({ lastEvent }) {
       </Box>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2,minmax(0,1fr))", xl: "repeat(4,minmax(0,1fr))" }, gap: 1.5 }}>
-        <StatCard icon={<GroupsIcon />} label="Patients in queue" value={data ? allItems.length : "—"} color="#2563eb" hint="Current active cohort" />
+        <StatCard icon={<GroupsIcon />} label="Patients in queue" value={data ? allItems.length : "—"} color="#5E0ED7" hint="Current active cohort" />
         <StatCard icon={<EmergencyIcon />} label="High risk now" value={data ? highCount : "—"} color="#b91c1c" hint="Requires clinician review" />
-        <StatCard icon={<MonitoringIcon />} label="Pending decisions" value={data ? pendingRecs : "—"} color="#6d28d9" hint="Recommendations awaiting review" />
+        <StatCard icon={<MonitoringIcon />} label="Pending decisions" value={data ? pendingRecs : "—"} color="#9333EA" hint="Recommendations awaiting review" />
         <StatCard icon={<HourglassBottomIcon />} label="Low-confidence scores" value={data ? lowConf : "—"} color="#b45309" hint="Interpret with added caution" />
       </Box>
 
@@ -118,7 +118,7 @@ export default function QueuePage({ lastEvent }) {
           <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
               <Typography variant="h6" sx={{ fontSize: 17 }}>Live patient queue</Typography>
-              <Chip size="small" label={allItems.length} sx={{ height: 23, bgcolor: "#eef4ff", color: "#1d4ed8", fontWeight: 800 }} />
+              <Chip size="small" label={allItems.length} sx={{ height: 23, bgcolor: "#F4EFFC", color: "#5E0ED7", fontWeight: 800 }} />
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12, mt: 0.4 }}>Sorted by risk signal, open alerts and triage category.</Typography>
           </Box>
@@ -160,7 +160,7 @@ export default function QueuePage({ lastEvent }) {
                   {items.map((row) => (
                     <TableRow key={row.patient_id} hover>
                       <TableCell>
-                        <Link component={RouterLink} to={`/patients/${encodeURIComponent(row.patient_id)}`} underline="hover" fontWeight={750} sx={{ color: "#1d4ed8" }}>
+                        <Link component={RouterLink} to={`/patients/${encodeURIComponent(row.patient_id)}`} underline="hover" fontWeight={750} sx={{ color: "#5E0ED7" }}>
                           {row.patient_id}
                         </Link>
                         <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.25 }}>Patient record</Typography>

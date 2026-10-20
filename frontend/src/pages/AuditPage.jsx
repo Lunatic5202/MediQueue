@@ -23,8 +23,8 @@ import { api } from "../api";
 const EVENT_COLORS = {
   recommendation_confirmed: "#059669",
   recommendation_rejected: "#64748b",
-  recommendation_overridden: "#7c3aed",
-  queue_event: "#2563eb",
+  recommendation_overridden: "#9333EA",
+  queue_event: "#5E0ED7",
   alert_created: "#dc2626",
   risk_score_computed: "#0891b2",
 };

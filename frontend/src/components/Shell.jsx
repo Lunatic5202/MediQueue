@@ -16,16 +16,17 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import CircleIcon from "@mui/icons-material/Circle";
 import { useAuth } from "../auth";
 
+const ACCENT = "#5E0ED7";
 const WIDTH = 256;
 const NAV = [
-  { to: "/", label: "Live Queue", icon: <DashboardIcon />, end: true },
+  { to: "/queue", label: "Live Queue", icon: <DashboardIcon />, end: true },
   { to: "/alerts", label: "Alerts", icon: <NotificationsActiveIcon /> },
   { to: "/audit", label: "Audit Trail", icon: <GavelIcon /> },
   { to: "/replay", label: "Replay Simulator", icon: <ReplayIcon /> },
   { to: "/model", label: "Model & Health", icon: <HealthAndSafetyIcon /> },
 ];
 const PAGE_LABELS = {
-  "/": ["Live operations", "Emergency department overview"],
+  "/queue": ["Live operations", "Emergency department overview"],
   "/alerts": ["Alert center", "Review deterioration signals and their current status"],
   "/audit": ["Audit trail", "Trace important actions and system events"],
   "/replay": ["Replay simulator", "Explore system behavior with synthetic scenarios"],
@@ -43,7 +44,7 @@ export default function Shell({ transport, connected }) {
   const navigate = useNavigate();
   const page = location.pathname.startsWith("/patients/")
     ? ["Patient overview", "Vitals, risk history and clinician recommendations"]
-    : (PAGE_LABELS[location.pathname] ?? PAGE_LABELS["/"]);
+    : (PAGE_LABELS[location.pathname] ?? ["Live operations", "Emergency department overview"]);
   const statusColor = connected ? "#34d399" : transport === "polling" ? "#fbbf24" : "#fb7185";
   const transportLabel = transport === "websocket"
     ? "Live connection"
@@ -52,18 +53,18 @@ export default function Shell({ transport, connected }) {
       : "Connecting";
 
   const drawer = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: "white", background: "linear-gradient(165deg,#101a31 0%,#14223d 55%,#182b49 100%)" }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", color: "white", background: "#060607" }}>
       <Box sx={{ px: 2.5, py: 2.75, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box sx={{ width: 42, height: 42, flexShrink: 0, borderRadius: "13px", background: "linear-gradient(140deg,#60a5fa,#2563eb 58%,#4f46e5)", display: "grid", placeItems: "center", boxShadow: "0 7px 18px #2563eb55" }}>
-          <HealthAndSafetyIcon sx={{ fontSize: 25 }} />
+        <Box sx={{ width: 42, height: 42, flexShrink: 0, borderRadius: "50%", border: `2px solid ${ACCENT}`, display: "grid", placeItems: "center" }}>
+          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: ACCENT }} />
         </Box>
         <Box>
-          <Typography sx={{ color: "white", fontWeight: 850, fontSize: 18, letterSpacing: "-0.04em", lineHeight: 1.1 }}>MediQueue</Typography>
-          <Typography sx={{ color: "#9aacc8", fontSize: 11.5, mt: 0.5 }}>ED decision support</Typography>
+          <Typography sx={{ color: "white", fontWeight: 700, fontSize: 15, letterSpacing: "0.22em", textTransform: "uppercase", lineHeight: 1.1 }}>MediQueue</Typography>
+          <Typography sx={{ color: "#71717a", fontSize: 11, mt: 0.5, letterSpacing: "0.08em", textTransform: "uppercase" }}>ED decision support</Typography>
         </Box>
       </Box>
       <Divider sx={{ borderColor: "#ffffff14", mx: 2 }} />
-      <Typography sx={{ px: 3, pt: 3, pb: 1.25, color: "#7186a8", fontSize: 10, fontWeight: 800, letterSpacing: "0.14em" }}>WORKSPACE</Typography>
+      <Typography sx={{ px: 3, pt: 3, pb: 1.25, color: "#52525b", fontSize: 10, fontWeight: 800, letterSpacing: "0.14em" }}>WORKSPACE</Typography>
       <List sx={{ px: 1.5, pt: 0 }}>
         {NAV.map((item) => (
           <ListItemButton
@@ -73,11 +74,11 @@ export default function Shell({ transport, connected }) {
             end={item.end}
             onClick={() => setMobileOpen(false)}
             sx={{
-              mb: 0.65, minHeight: 46, borderRadius: 2.5, px: 1.5, color: "#b8c6dc",
+              mb: 0.65, minHeight: 46, borderRadius: 2.5, px: 1.5, color: "#a1a1aa",
               transition: "background 160ms ease, color 160ms ease, transform 160ms ease",
               "& .MuiListItemIcon-root": { transition: "color 160ms ease" },
-              "&.active": { background: "linear-gradient(100deg,#3478f633,#3478f610)", color: "#fff", boxShadow: "inset 3px 0 0 #60a5fa" },
-              "&.active .MuiListItemIcon-root": { color: "#8ec5ff" },
+              "&.active": { background: `${ACCENT}1f`, color: "#fff", boxShadow: `inset 3px 0 0 ${ACCENT}` },
+              "&.active .MuiListItemIcon-root": { color: "#c4a6f5" },
               "&:hover": { background: "#ffffff0d", color: "#fff", transform: "translateX(2px)" },
             }}
           >
@@ -90,13 +91,13 @@ export default function Shell({ transport, connected }) {
         <Box sx={{ p: 1.75, borderRadius: 3, background: "#ffffff08", border: "1px solid #ffffff12" }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <CircleIcon sx={{ fontSize: 9, color: statusColor }} />
-            <Typography sx={{ color: "#d5deec", fontSize: 11.5, fontWeight: 700 }}>{transportLabel}</Typography>
+            <Typography sx={{ color: "#d4d4d8", fontSize: 11.5, fontWeight: 700 }}>{transportLabel}</Typography>
           </Stack>
-          <Typography sx={{ color: "#8498b8", fontSize: 10.5, mt: 0.75, lineHeight: 1.5 }}>
+          <Typography sx={{ color: "#71717a", fontSize: 10.5, mt: 0.75, lineHeight: 1.5 }}>
             {transport === "websocket" ? "Real-time event stream enabled" : transport === "polling" ? "Updates are using the polling fallback" : "Establishing a secure session"}
           </Typography>
         </Box>
-        <Typography sx={{ color: "#7084a4", fontSize: 10.5, px: 0.5, pt: 2, lineHeight: 1.6 }}>
+        <Typography sx={{ color: "#52525b", fontSize: 10.5, px: 0.5, pt: 2, lineHeight: 1.6 }}>
           Research prototype · Clinician oversight required
         </Typography>
       </Box>
@@ -130,13 +131,13 @@ export default function Shell({ transport, connected }) {
             </Tooltip>
             <Tooltip title="Account">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small" aria-label="Account menu">
-                <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: 14, fontWeight: 800, boxShadow: "0 0 0 3px #2563eb14" }}>{user?.username?.[0]?.toUpperCase() ?? "?"}</Avatar>
+                <Avatar sx={{ width: 36, height: 36, bgcolor: "primary.main", fontSize: 14, fontWeight: 800, boxShadow: "0 0 0 3px rgba(94,14,215,0.12)" }}>{user?.username?.[0]?.toUpperCase() ?? "?"}</Avatar>
               </IconButton>
             </Tooltip>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
               <MenuItem disabled><PersonIcon fontSize="small" sx={{ mr: 1 }} />{user?.username} · {user?.role}</MenuItem>
               <Divider />
-              <MenuItem onClick={() => { setAnchorEl(null); logout(); navigate("/login"); }}>
+              <MenuItem onClick={() => { setAnchorEl(null); logout(); navigate("/"); }}>
                 <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Sign out
               </MenuItem>
             </Menu>

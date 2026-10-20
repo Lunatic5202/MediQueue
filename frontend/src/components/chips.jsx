@@ -57,10 +57,10 @@ export function SeverityChip({ severity }) {
 
 export function StatusChip({ status }) {
   const map = {
-    pending: { c: "#2563eb", bg: "#2563eb14" },
+    pending: { c: "#5E0ED7", bg: "#5E0ED714" },
     confirmed: { c: "#059669", bg: "#05966914" },
     rejected: { c: "#64748b", bg: "#64748b14" },
-    overridden: { c: "#7c3aed", bg: "#7c3aed14" },
+    overridden: { c: "#9333EA", bg: "#9333EA14" },
     superseded: { c: "#94a3b8", bg: "#94a3b814" },
     open: { c: "#dc2626", bg: "#dc262614" },
     suppressed: { c: "#94a3b8", bg: "#94a3b814" },
