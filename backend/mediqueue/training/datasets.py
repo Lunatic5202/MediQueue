@@ -369,6 +369,15 @@ def build_feature_matrix(
         start = obs[0]["device_ts"]
         end = obs[-1]["device_ts"]
         label_map = {ts: lab for ts, lab in series.labels}
+        # PhysioNet's SepsisLabel is 1 at/after onset. For an early-warning
+        # target, use the first positive timestamp as onset, label only samples
+        # in the preceding 6 hours, and exclude samples at/after onset.
+        sepsis_onset = (
+            min((ts for ts, lab in series.labels if lab == 1), default=None)
+            if task == "sepsis"
+            else None
+        )
+        sepsis_horizon = timedelta(hours=6)
 
         grid: list[datetime] = []
         cur = start
@@ -378,6 +387,10 @@ def build_feature_matrix(
 
         idx = 0
         for ts in grid:
+            # Do not train an early-warning model on observations recorded once
+            # sepsis onset has already occurred.
+            if task == "sepsis" and sepsis_onset is not None and ts >= sepsis_onset:
+                continue
             while idx + 1 < len(obs) and obs[idx + 1]["device_ts"] <= ts:
                 idx += 1
             if obs[idx]["device_ts"] > ts:
@@ -398,10 +411,14 @@ def build_feature_matrix(
                 row[name] = fr.features.get(name)
             # Labels: exact grid match when available; else nearest label <= ts.
             if task == "sepsis":
-                lab = label_map.get(ts)
-                if lab is None:
-                    prior = [t for t in label_map if t <= ts]
-                    lab = label_map[max(prior)] if prior else 0
+                # Positive means onset occurs within the next 6 hours. Samples
+                # at/after onset were excluded above, so this is an early-warning
+                # target rather than contemporaneous/post-onset classification.
+                lab = int(
+                    sepsis_onset is not None
+                    and ts < sepsis_onset
+                    and sepsis_onset <= ts + sepsis_horizon
+                )
             else:
                 # Deterioration proxy: positive if any positive label within the
                 # prediction horizon after this sample time.
