@@ -1,6 +1,12 @@
 name: Dependency security audit
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+      - ".github/workflows/dependency-audit.yml"
   workflow_dispatch:
   schedule:
     - cron: "30 3 * * 1"
