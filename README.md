@@ -189,3 +189,19 @@ All thresholds are environment-overridable (`MEDIQUEUE_*`); see
 
 Apache-2.0. Public/physiological datasets are **not** redistributed here —
 download them under their own licenses (see [docs/datasets.md](docs/datasets.md)).
+
+
+## Packaging and developer checks
+
+The project metadata in `pyproject.toml` requires Python 3.11 or newer and defines the development extras. A development environment can be prepared with:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
+The repository also provides Docker Compose for the API/database workflow and scripts for model training, evaluation, benchmarking and local startup. Follow dataset-specific instructions before downloading or using external datasets. Synthetic training/replay data is useful for software demonstrations and pipeline tests, but it is not clinical validation.
+
+Keep clinician-in-the-loop and audit guarantees intact. Changes to scoring, thresholds, recommendations, alert suppression or model artifacts should include tests and a clear explanation of the evidence used.
