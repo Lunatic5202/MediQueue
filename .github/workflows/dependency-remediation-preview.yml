@@ -6,10 +6,10 @@ on:
       - "security/**"
     paths:
       - "frontend/package.json"
-  workflow_dispatch:
+      - ".github/workflows/dependency-remediation-preview.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: dependency-remediation-${{ github.workflow }}-${{ github.ref }}
@@ -66,6 +66,22 @@ jobs:
             console.log(`- ${item.name}: ${item.severity}; direct=${item.isDirect}; range=${item.range}`);
           }
           NODE
+
+      - name: Commit validated dependency lockfile to remediation branch
+        if: success() && github.ref == 'refs/heads/security/mediqueue-toolchain-remediation'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: lock patched Vite and Vitest versions"
+            gh auth setup-git
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "No dependency manifest or lockfile changes to commit."
+          fi
 
       - name: Upload candidate manifests, lockfile and audit
         if: always()
