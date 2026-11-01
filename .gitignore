@@ -31,3 +31,6 @@ frontend/.vite/
 .idea/
 .vscode/
 *.swp
+
+# Generated frontend build output
+frontend/dist/
