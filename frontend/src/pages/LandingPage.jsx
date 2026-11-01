@@ -7,7 +7,6 @@ import {
   Grid,
   Stack,
   Typography,
-  useTheme,
 } from "@mui/material";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import TimelineIcon from "@mui/icons-material/Timeline";
@@ -229,8 +228,6 @@ function HeroPreview() {
 /* ---------- page ---------- */
 
 export default function LandingPage() {
-  const theme = useTheme();
-
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#ffffff" }}>
       {/* nav */}
@@ -341,7 +338,7 @@ export default function LandingPage() {
               >
                 MediQueue continuously scores ED patients from four core vitals over a rolling
                 four-hour window, surfaces deduplicated alerts with structured explanations, and
-                proposes bounded triage adjustments — always pending a clinician's decision.
+                proposes bounded triage adjustments — always pending a clinician&apos;s decision.
               </Typography>
               <Stack direction="row" spacing={1.5} sx={{ mt: 4.5, flexWrap: "wrap", gap: 1 }}>
                 <Button
@@ -415,7 +412,7 @@ export default function LandingPage() {
             variant="h3"
             sx={{ mt: 2.5, fontSize: { xs: "1.85rem", md: "2.4rem" }, fontWeight: 850, letterSpacing: "-0.035em", color: "#0f172a" }}
           >
-            Everything a waiting-room watch needs — nothing it doesn't
+            Everything a waiting-room watch needs — nothing it doesn&apos;t
           </Typography>
           <Typography sx={{ mt: 2, color: "text.secondary", fontSize: 16.5, maxWidth: 620, lineHeight: 1.65 }}>
             Purpose-built around the SDD: a narrow vital set, a fixed window, honest abstention,
