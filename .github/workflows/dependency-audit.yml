@@ -1,0 +1,87 @@
+name: Dependency security audit
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  npm-audit:
+    name: Audit frontend dependencies
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install exact locked dependencies
+        run: npm ci
+
+      - name: Generate npm audit report
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > npm-audit.json
+          audit_status=$?
+          set -e
+          echo "npm audit exit status: $audit_status"
+          node --input-type=commonjs <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit.json", "utf8"));
+          const metadata = report.metadata?.vulnerabilities ?? {};
+          console.log("## MediQueue dependency audit");
+          console.log("");
+          console.log("| Severity | Count |");
+          console.log("|---|---:|");
+          for (const severity of ["critical", "high", "moderate", "low", "info"]) {
+            console.log(`| ${severity} | ${metadata[severity] ?? 0} |`);
+          }
+          console.log("");
+          console.log("### Advisory summary");
+          const advisories = Object.values(report.vulnerabilities ?? {});
+          for (const item of advisories) {
+            const via = (item.via ?? []).map(entry =>
+              typeof entry === "string" ? entry : `${entry.name}: ${entry.title} (${entry.url})`
+            );
+            console.log(`- **${item.name}** — ${item.severity}; direct: ${item.isDirect}; range: ${item.range}; fix: ${JSON.stringify(item.fixAvailable)}`);
+            for (const entry of via) console.log(`  - ${entry}`);
+          }
+          NODE
+          {
+            echo "## Dependency security audit"
+            echo ""
+            echo "| Severity | Count |"
+            echo "|---|---:|"
+            for severity in critical high moderate low info; do
+              count=$(node -e "const r=require('./npm-audit.json'); console.log(r.metadata?.vulnerabilities?.['$severity'] ?? 0)")
+              echo "| $severity | $count |"
+            done
+            echo ""
+            echo "Full advisory data is attached as the `npm-audit-report` workflow artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload machine-readable audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediqueue-npm-audit-report
+          path: frontend/npm-audit.json
+          if-no-files-found: error
+          retention-days: 30
