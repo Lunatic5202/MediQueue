@@ -9,7 +9,7 @@ on:
       - ".github/workflows/dependency-remediation-preview.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: dependency-remediation-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +22,8 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    permissions:
+      contents: read
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -67,24 +69,7 @@ jobs:
           }
           NODE
 
-      - name: Commit validated dependency lockfile to remediation branch
-        if: success() && github.ref == 'refs/heads/security/mediqueue-toolchain-remediation'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          if ! git diff --cached --quiet; then
-            git commit -m "fix: lock patched Vite and Vitest versions"
-            gh auth setup-git
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          else
-            echo "No dependency manifest or lockfile changes to commit."
-          fi
-
       - name: Upload candidate manifests, lockfile and audit
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mediqueue-dependency-remediation-candidate
@@ -94,3 +79,40 @@ jobs:
             frontend/npm-audit-after.json
           if-no-files-found: warn
           retention-days: 14
+
+  commit-lockfile:
+    name: Commit validated lockfile
+    needs: validate
+    if: success() && github.ref == 'refs/heads/security/mediqueue-toolchain-remediation'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check out remediation branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download validated candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: mediqueue-dependency-remediation-candidate
+          path: /tmp/mediqueue-candidate
+
+      - name: Commit candidate lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp /tmp/mediqueue-candidate/package.json frontend/package.json
+          cp /tmp/mediqueue-candidate/package-lock.json frontend/package-lock.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: lock patched Vite and Vitest versions"
+            gh auth setup-git
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "No dependency manifest or lockfile changes to commit."
+          fi
