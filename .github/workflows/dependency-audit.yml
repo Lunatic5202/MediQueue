@@ -84,10 +84,28 @@ jobs:
             echo "Full advisory data is attached as the `npm-audit-report` workflow artifact."
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload machine-readable audit report
+      - name: Preview safe npm remediation without changing the lockfile
+        shell: bash
+        run: |
+          set +e
+          npm audit fix --dry-run --json > npm-audit-fix-dry-run.json
+          dry_run_status=$?
+          set -e
+          echo "npm audit fix --dry-run exit status: $dry_run_status"
+          node --input-type=commonjs <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit-fix-dry-run.json", "utf8"));
+          console.log("Dry-run result keys:", Object.keys(report).join(", "));
+          console.log("Proposed install summary:", JSON.stringify(report.added ?? report.audit?.metadata?.dependencies ?? null));
+          console.log("Proposed audit summary:", JSON.stringify(report.audit?.metadata?.vulnerabilities ?? report.metadata?.vulnerabilities ?? null));
+          NODE
+
+      - name: Upload machine-readable audit reports
         uses: actions/upload-artifact@v4
         with:
-          name: mediqueue-npm-audit-report
-          path: frontend/npm-audit.json
+          name: mediqueue-npm-audit-reports
+          path: |
+            frontend/npm-audit.json
+            frontend/npm-audit-fix-dry-run.json
           if-no-files-found: error
           retention-days: 30
