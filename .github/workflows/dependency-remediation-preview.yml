@@ -1,0 +1,80 @@
+name: Dependency remediation preview
+
+on:
+  push:
+    branches:
+      - "security/**"
+    paths:
+      - "frontend/package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-remediation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Preview and validate compatible toolchain updates
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Update Vite and Vitest within selected release lines
+        run: npm install --save-dev vite@^6.4.5 vitest@^5.0.5 --package-lock-only --ignore-scripts
+
+      - name: Install from generated lockfile
+        run: npm ci
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Build production frontend
+        run: npm run build
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Generate post-update audit report
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > npm-audit-after.json
+          audit_status=$?
+          set -e
+          echo "npm audit exit status: $audit_status"
+          node --input-type=commonjs <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("npm-audit-after.json", "utf8"));
+          console.log("Post-update vulnerability counts:", JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+          for (const item of Object.values(report.vulnerabilities ?? {})) {
+            console.log(`- ${item.name}: ${item.severity}; direct=${item.isDirect}; range=${item.range}`);
+          }
+          NODE
+
+      - name: Upload candidate manifests, lockfile and audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediqueue-dependency-remediation-candidate
+          path: |
+            frontend/package.json
+            frontend/package-lock.json
+            frontend/npm-audit-after.json
+          if-no-files-found: warn
+          retention-days: 14
